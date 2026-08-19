@@ -68,10 +68,46 @@ nexkeyruntime_license_destroy(g_license);
 g_license = NULL;
 ```
 
-## What this repository does not cover yet
+## Perfil B — activating from your own plugin
 
-`nexkeyruntime_license_set_license_key`, `_activate`, `_deactivate`,
-`_request_sync`, and `_publish_receipt` are declared in the header for
-Perfil B (autonomous, host-free activation) but the backend sync network
-they depend on has not shipped. Do not build against them yet — this
-document will be updated once Perfil B is operational.
+Perfil A above covers the common case: MCNexus activates, your plugin only
+verifies. If your plugin activates on its own instead, the additional calls
+are `nexkeyruntime_license_set_license_key`, `_activate`, `_deactivate`,
+`_request_sync` and `_publish_receipt`.
+
+```c
+nexkeyruntime_license_set_license_key(g_license, user_entered_key);
+nexkeyruntime_license_set_metadata(g_license, "appVersion", "1.4.2");
+if (nexkeyruntime_license_activate(g_license) == NEXKEYRUNTIME_OK) {
+    /* the receipt is on disk and render_decision() now answers ALLOW */
+}
+```
+
+`_activate`, `_deactivate` and `_request_sync` block on the network for up to
+their timeout. Call them from a UI or worker thread, never from a render
+callback.
+
+Once a license is active the SDK keeps it fresh on its own, on a background
+thread, and you do not have to schedule anything. Subscribe if you want to
+know when something changes:
+
+```c
+static void on_license(NexKeyRuntimeLicenseStatus status, void *user_data) {
+    /* Runs on the SDK's poller thread. Do not block, and do not call back
+       into the handle from here — record the status and return. */
+}
+nexkeyruntime_license_set_callback(g_license, on_license, NULL);
+```
+
+Two behaviours worth knowing, because they are deliberate:
+
+- **A headless process does not sync.** A render node opening the same project
+  on 200 machines will not produce 200 requests; each one decides offline from
+  the receipt it already has. Override with `_set_headless` in either
+  direction if the autodetection is wrong for your host.
+- **Many instances share one background thread.** Fifty nodes of the same
+  effect in one project produce one poller, not fifty. You do not need to
+  deduplicate handles yourself.
+
+`nexkeyruntime_license_destroy` stops and joins that thread before it returns,
+so it is safe for your host to unload the bundle immediately afterwards.

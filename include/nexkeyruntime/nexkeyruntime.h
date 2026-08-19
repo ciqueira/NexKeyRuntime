@@ -20,10 +20,15 @@
 extern "C" {
 #endif
 
+/* Kept in step with MCSDK/VERSION, which is the file a human edits; CI fails
+   the build if they disagree. These macros cannot simply be generated from it:
+   they are public API (the package-consumer test asserts nexkeyruntime_version()
+   equals NEXKEYRUNTIME_VERSION_STRING), and this header ships as SOURCE in the
+   public repository rather than as a build artifact. */
 #define NEXKEYRUNTIME_VERSION_MAJOR 0
-#define NEXKEYRUNTIME_VERSION_MINOR 1
+#define NEXKEYRUNTIME_VERSION_MINOR 2
 #define NEXKEYRUNTIME_VERSION_PATCH 0
-#define NEXKEYRUNTIME_VERSION_STRING "0.1.0"
+#define NEXKEYRUNTIME_VERSION_STRING "0.2.0"
 
 #define NEXKEYRUNTIME_VERSION_CAPACITY 64
 #define NEXKEYRUNTIME_ID_CAPACITY 160
@@ -348,9 +353,7 @@ NEXKEYRUNTIME_API NexKeyRuntimeRenderDecision nexkeyruntime_license_render_decis
 );
 
 /* ===== BLOCO B — ACTIVATE: MCNexus (Perfil A) or the app itself
-   (Perfil B). A plugin that only validates never calls these (D15).
-   Declared here so the contract is fixed; Fase 4B implements them —
-   until then every one returns NEXKEYRUNTIME_NOT_AVAILABLE. ===== */
+   (Perfil B). A plugin that only validates never calls these (D15). ===== */
 NEXKEYRUNTIME_API NexKeyRuntimeResult nexkeyruntime_license_set_license_key(
   NexKeyRuntimeLicenseHandle *handle,
   const char *key
@@ -371,17 +374,36 @@ NEXKEYRUNTIME_API NexKeyRuntimeResult nexkeyruntime_license_publish_receipt(
   const char *certificate
 );
 
-/* ===== BLOCO C — SYNC: automatic once Fase 4B's poller exists; forcing
-   is optional. Not implemented yet — see BLOCO B. ===== */
+/* ===== BLOCO C — SYNC: automatic once Fase 4B's poller runs; forcing
+   is optional. ===== */
+
+/* Invoked on the POLLER thread, never on the render thread, every time a
+   background sync completes. Modelled on LexActivator's SetLicenseCallback,
+   which exists for the same reason: without it an integrator learns about a
+   revocation only by polling the SDK, which is the loop the SDK already runs
+   on their behalf (D36).
+
+   The callback must not block and must not call back into this handle — it is
+   a notification, not a place to do work. Read the snapshot afterwards from
+   your own thread. */
+typedef void (*NexKeyRuntimeLicenseCallback)(
+  NexKeyRuntimeLicenseStatus status,
+  void *user_data
+);
+NEXKEYRUNTIME_API NexKeyRuntimeResult nexkeyruntime_license_set_callback(
+  NexKeyRuntimeLicenseHandle *handle,
+  NexKeyRuntimeLicenseCallback callback,
+  void *user_data
+);
+
 NEXKEYRUNTIME_API NexKeyRuntimeResult nexkeyruntime_license_request_sync(
   NexKeyRuntimeLicenseHandle *handle,
   int force
 );
-/* Optional; overrides autodetection in either direction once Fase 4B's
-   poller exists (§7.9.5) — the default matters because assuming GUI would
-   let an unattended render farm hammer the backend, and assuming headless
-   would mean a normal desktop user never syncs. NOT_AVAILABLE like the
-   rest of BLOCO B/C until then: there is no poller yet for this to affect. */
+/* Optional; overrides autodetection in either direction (§7.9.5, D7) — the
+   default matters because assuming GUI would let an unattended render farm
+   hammer the backend, and assuming headless would mean a normal desktop user
+   never syncs. Autodetection errs toward interactive when it cannot tell. */
 NEXKEYRUNTIME_API NexKeyRuntimeResult nexkeyruntime_license_set_headless(
   NexKeyRuntimeLicenseHandle *handle,
   int headless
