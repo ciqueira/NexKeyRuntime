@@ -3,16 +3,34 @@
 All notable changes to the NexKeyRuntime public repository will be
 documented in this file.
 
-## [0.2.0] — prepared, not yet released
+## [0.2.1]
 
-> The published binary is still `v0.1.0`, built before Perfil B existed. The
-> header on `main` declares functions that release does not export — build
-> against the header inside the release archive, not this one, until `v0.2.0`
-> is tagged.
->
-> The minor bump (not a patch) is why: this adds a public function and turns
-> seven declared-but-inert ones into working API. Nothing already shipped
-> changed signature or behaviour.
+Bug fixes only. No API changed, so 0.2.0 code recompiles against this header
+untouched — but every fix here is one you would rather have.
+
+### Fixed
+
+- **A stale license key could delete a valid receipt.** The background poller
+  captured its request when it started, so deactivating one license and
+  activating another left it syncing the key it began with. The server
+  correctly answered `activation_removed` for that key — a true verdict about
+  the wrong license — and the SDK then deleted *every* receipt in the tenant
+  directory rather than the one it was told about. Activating a new key and
+  forcing a sync could therefore destroy the licence you had just installed.
+  The request is now rebuilt each cycle, an absent stored key means "do not
+  sync" instead of "sync with nothing", and only the affected receipt is
+  removed.
+- **`last_synced_at` was declared and never written.** The field is in
+  `NexKeyRuntimeLicenseSnapshot` documented as "0 until a sync has happened",
+  and nothing ever set it, so it stayed 0 forever for every caller. It now
+  carries the last time a call actually reached the server, preferring the
+  server's clock over the local one.
+- **macOS: storage failed under a non-standard `$HOME`.** `~/Library` was
+  missing from the directory chain and `mkdir` does not create parents, so a
+  process whose home lacked it got an unusable storage path. Invisible on a
+  normal install; it broke sandboxed and test environments.
+
+## [0.2.0]
 
 ### Added
 
