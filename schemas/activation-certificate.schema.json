@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/ciqueira/NexKeyRuntime/schemas/activation-certificate.schema.json",
+  "title": "NexKeyRuntime activation certificate",
+  "description": "Envelope produced by the sdkGateway when activating or syncing a license. `payload` and `signature` are base64url; `payload`, once decoded, is the canonical JSON described by the `payload` definition below, and `signature` is the Ed25519 signature of those exact decoded bytes, verified against the public key in the ProductData keyring identified by `keyId`.",
+  "type": "object",
+  "required": ["format", "keyId", "payload", "signature"],
+  "additionalProperties": false,
+  "properties": {
+    "format": {
+      "const": "nexkeyruntime-activation-v1"
+    },
+    "keyId": {
+      "type": "string",
+      "pattern": "^[a-z0-9-]{1,64}$",
+      "description": "Identifies which key in the ProductData keyring signed this payload."
+    },
+    "payload": {
+      "type": "string",
+      "contentEncoding": "base64url",
+      "description": "Base64url-encoded canonical JSON matching the `payload` definition."
+    },
+    "signature": {
+      "type": "string",
+      "contentEncoding": "base64url",
+      "description": "Ed25519 signature (64 bytes) over the decoded payload bytes."
+    }
+  },
+  "$defs": {
+    "payload": {
+      "type": "object",
+      "description": "Decoded, verified payload — mirrors nexkeyruntime::licensing::Claims (MCSDK/src/licensing/Certificate/Claims.h) field-for-field.",
+      "required": [
+        "formatVersion", "type", "issuer", "tenantId", "audience",
+        "activationId", "certificateId", "machineBinding", "status",
+        "edition", "entitlement", "expiresAt", "issuedAt", "notBefore",
+        "syncAfter", "offlineValidUntil", "policyRevision",
+        "minimumSdkVersion"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "formatVersion": { "type": "integer", "minimum": 1 },
+        "type": { "const": "activation" },
+        "issuer": { "type": "string" },
+        "tenantId": { "type": "string", "description": "Slug, matched against the value the plugin passes to set_tenant_id." },
+        "audience": { "type": "string", "description": "Opaque, e.g. \"nexkeyruntime\"." },
+        "activationId": { "type": "string", "description": "Opaque; ties to the local receipt file name." },
+        "certificateId": { "type": "string", "description": "Opaque; identifies this issuance." },
+        "machineBinding": { "type": "string", "description": "Matched byte-exact against the local machine binding value." },
+        "status": { "enum": ["active", "suspended", "revoked"] },
+        "edition": { "type": "string", "description": "Opaque label; the SDK never interprets it." },
+        "entitlement": { "type": "string", "description": "Slug, matched against the value the plugin passes to set_variant." },
+        "expiresAt": { "type": "integer", "description": "Unix seconds; 0 = perpetual." },
+        "issuedAt": { "type": "integer" },
+        "notBefore": { "type": "integer" },
+        "syncAfter": { "type": "integer" },
+        "offlineValidUntil": { "type": "integer" },
+        "policyRevision": { "type": "integer" },
+        "minimumSdkVersion": { "type": "string" }
+      }
+    }
+  }
+}
