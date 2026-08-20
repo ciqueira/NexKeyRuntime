@@ -3,6 +3,40 @@
 All notable changes to the NexKeyRuntime public repository will be
 documented in this file.
 
+## [0.2.3]
+
+No API changed, so 0.2.2 code recompiles against this header untouched.
+
+### Fixed
+
+- **A machine whose clock trailed the server rejected the certificate it had
+  just activated with.** The issuer stamps `notBefore` from its own clock at
+  the moment it signs; the SDK compared that against the local clock with no
+  tolerance, so any machine running even a second or two behind the gateway
+  failed verification with "certificate is not yet valid" — at activation,
+  the one moment the certificate is guaranteed to be fresh. Network latency
+  masked it whenever the round trip exceeded the drift, which is why it
+  survived: it reproduces on drifted clocks and on fast connections, not in
+  ordinary testing. Machines with NTP blocked by a firewall are common in the
+  isolated studio and render-farm networks this SDK is built for, and those
+  are exactly the machines that drift. Now given the same 60-second leeway a
+  JWT library applies to `nbf`, tracked in a field of its own rather than
+  folded into the clock-rollback tolerance — rollback is fraud to detect,
+  skew is drift to tolerate, and conflating them would let one be widened for
+  the other's reasons. Only the *start* of the validity window is forgiving:
+  `expiresAt` and `offlineValidUntil` remain strict, so no licence runs a
+  second longer than it was issued for.
+
+### Note for render farms and other headless nodes
+
+A headless node does local verification only and never starts the background
+poller, so its receipt is never renewed and it stops being valid once the
+offline window closes — with nothing wrong on the machine or the server. This
+is existing behaviour, not a change, but it is easy to be surprised by: a node
+activated once and left running will deny after the grace period configured
+for that licence. Until file-based renewal exists, size the offline grace to
+outlast the longest gap between re-activations.
+
 ## [0.2.2]
 
 macOS only. No API changed, so 0.2.1 code recompiles against this header
