@@ -3,6 +3,35 @@
 All notable changes to the NexKeyRuntime public repository will be
 documented in this file.
 
+## [0.4.0]
+
+No API changed and no stored state is affected, so 0.3.0 code recompiles
+untouched and activations made against it keep working. What changes is what
+the SDK reports about itself and the machine.
+
+### Added
+
+- **The SDK now reports its own version on every activation and sync.** It was
+  the one participant that could not be wrong about it — no integrator has to
+  remember a call, and no build can claim a version it is not — yet it was the
+  one thing never sent. Until now the only way to tell which SDK produced an
+  activation was to infer it from `fingerprintVersion`, which answers a
+  narrower question.
+
+- **`set_metadata("product", ...)`** — what the integrating program calls
+  itself, e.g. `"mcnexus"` or the plugin's own name. An activation is shared by
+  every program on a machine holding the same entitlement, and each one syncs;
+  without a name attached, the version each reports overwrites the last, and
+  the record answers no question reliably. `"product"` was already an accepted
+  key that the handler ignored, so this adds no ABI surface. A program that
+  declares nothing still works, and is recorded as unknown.
+
+- **Operating system version** is collected and sent: `kern.osproductversion`
+  on macOS, `RtlGetVersion` on Windows. Reported, never enforced — it exists so
+  an activation can be told apart from another of the same customer's without
+  anything personal being stored. A machine that will not answer omits the
+  field.
+
 ## [0.3.0]
 
 **Every existing activation must be redone.** No API changed and 0.2.x code
