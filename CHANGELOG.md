@@ -3,6 +3,29 @@
 All notable changes to the NexKeyRuntime public repository will be
 documented in this file.
 
+## [0.2.2]
+
+macOS only. No API changed, so 0.2.1 code recompiles against this header
+untouched.
+
+### Fixed
+
+- **A stalled network call could hang forever on macOS.** After this SDK's
+  own timeout elapsed and it cancelled the in-flight request, it waited a
+  second time — with no timeout — for NSURLSession to confirm the
+  cancellation. That confirmation is not contractually guaranteed to arrive
+  promptly; Apple's own developer forums document cases where it does not
+  arrive at all. When that happened, the calling thread blocked with no
+  bound — reachable through `nexkeyruntime_license_destroy()`, meaning a host
+  unloading the plugin at the wrong moment could hang on it. Every HTTP call
+  this SDK makes on macOS shares the same transport, so this affected update
+  checks, `activate`/`deactivate`/`sync`, and the background poller alike.
+  Fixed to give up and return once its own timeout is reached, regardless of
+  whether the OS ever confirms the cancellation — verified via ASan across a
+  real network call that the object is destroyed at that point without
+  triggering a later, dangling write. Windows was never affected: it enforces
+  timeouts at the OS level with no equivalent wait.
+
 ## [0.2.1]
 
 Bug fixes only. No API changed, so 0.2.0 code recompiles against this header
