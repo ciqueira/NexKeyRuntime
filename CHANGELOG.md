@@ -3,6 +3,60 @@
 All notable changes to the NexKeyRuntime public repository will be
 documented in this file.
 
+## [0.3.0]
+
+**Every existing activation must be redone.** No API changed and 0.2.x code
+recompiles untouched, but the machine binding this SDK computes is different,
+so a certificate issued to 0.2.x reports `DEVICE_MISMATCH` under 0.3.0. Read
+the migration note below before upgrading — the server cannot repair this on
+its own.
+
+### Fixed
+
+- **Two builds of this SDK could disagree about what machine they were
+  running on.** The 256-bit hash behind `machineBinding` was deliberately
+  *not* the same algorithm on every backend: SHA-256 when built against
+  libsodium, BLAKE2b-256 when built against the vendored Monocypher. The
+  reasoning was that the value never left the process — but it does. It is
+  sent to the gateway at activation, signed into the certificate, and then
+  recomputed and compared by a *different binary* on the same machine: one
+  program activates, another verifies.
+
+  Where both were built the same way, nothing went wrong, which is why this
+  survived: release archives force Monocypher, so everything published agreed
+  with everything else. The moment one consumer was built on a machine with
+  libsodium installed, it computed a binding no other build recognised, and
+  the failure surfaced as `DEVICE_MISMATCH` on hardware that had not changed
+  — the least informative symptom possible for the actual cause.
+
+  `localHash256` is now **SHA-512 truncated to the leading 32 bytes** on every
+  backend, and a known-answer test pins it so the two can never drift apart
+  again silently. SHA-512 was chosen over the alternatives because it is
+  present in both backends already and reproducible in every language and
+  runtime — including Node and WebCrypto, where BLAKE2b-256 is simply not
+  available and cannot be derived by truncating BLAKE2b-512.
+
+### Added
+
+- `fingerprintVersion` now travels with every activation and sync request,
+  and is stored against the activation. It is `2` for the binding described
+  above; `1` means a pre-0.3.0 client, whose recipe depended on how it was
+  built. Requests that omit it are still accepted and recorded as `1`.
+
+### Migrating from 0.2.x
+
+The binding changes for every machine, and the server **cannot** map an old
+binding to a new one — it only ever receives the hash, never the fingerprint
+behind it. So a machine that re-activates looks like a new machine and
+consumes another seat, which on a single-seat licence means it is refused.
+
+1. Upgrade **every** program on a given machine at once. A host application
+   and a plugin that disagree about the SDK version will disagree about the
+   machine, which is the same failure this release fixes.
+2. Release the old activations for the affected licences (they are visible as
+   `fingerprintVersion = 1`).
+3. Re-activate.
+
 ## [0.2.3]
 
 No API changed, so 0.2.2 code recompiles against this header untouched.
