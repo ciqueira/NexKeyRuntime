@@ -1,9 +1,10 @@
-# Integration guide (Perfil A)
+# Integration guide (Profile A)
 
 This is the supported integration path today: the host application
 (MCNexus) activates and syncs the license; your plugin only verifies.
-Perfil B (the plugin activating on its own) is declared in the header but
-not yet operational — see the [README](../README.md).
+Profile B (the product activating on its own) is implemented as well and is
+covered further down; third-party use of the compiled binaries is still gated
+on the draft binary license — see the [README](../README.md).
 
 ## Lifecycle
 
@@ -68,9 +69,9 @@ nexkeyruntime_license_destroy(g_license);
 g_license = NULL;
 ```
 
-## Perfil B — activating from your own plugin
+## Profile B — activating from your own plugin
 
-Perfil A above covers the common case: MCNexus activates, your plugin only
+Profile A above covers the common case: MCNexus activates, your plugin only
 verifies. If your plugin activates on its own instead, the additional calls
 are `nexkeyruntime_license_set_license_key`, `_activate`, `_deactivate`,
 `_request_sync` and `_publish_receipt`.

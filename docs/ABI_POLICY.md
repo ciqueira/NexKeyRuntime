@@ -20,7 +20,7 @@ changed and when.
 comment directly above the licensing block in the header): values 0–10
 shipped with the update/notice handle; licensing values start at 20 and are
 grouped by concern — 20s are ProductData/config errors, 30s are
-server-reported license errors (Perfil B, not yet operational), 40s are
+server-reported license errors (Profile B), 40s are
 local-proof errors from `load_local`, 50s are environment errors. A future
 release may add a new value in an existing block or open a new one; it will
 never reuse or renumber an existing one. Treat unrecognized values as a

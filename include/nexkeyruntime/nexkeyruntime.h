@@ -338,7 +338,7 @@ NEXKEYRUNTIME_API NexKeyRuntimeResult nexkeyruntime_license_set_variant(
 
 /* ===== BLOCO A — VERIFY: the four (after create/destroy) every OFX
    uses. A plugin that never calls anything below this point is,
-   by construction, Perfil A/read-only — see §7.7. ===== */
+   by construction, Profile A/read-only — see §7.7. ===== */
 NEXKEYRUNTIME_API NexKeyRuntimeResult nexkeyruntime_license_load_local(
   NexKeyRuntimeLicenseHandle *handle
 );
@@ -352,8 +352,8 @@ NEXKEYRUNTIME_API NexKeyRuntimeRenderDecision nexkeyruntime_license_render_decis
   const NexKeyRuntimeLicenseHandle *handle
 );
 
-/* ===== BLOCO B — ACTIVATE: MCNexus (Perfil A) or the app itself
-   (Perfil B). A plugin that only validates never calls these (D15). ===== */
+/* ===== BLOCO B — ACTIVATE: MCNexus (Profile A) or the app itself
+   (Profile B). A plugin that only validates never calls these (D15). ===== */
 NEXKEYRUNTIME_API NexKeyRuntimeResult nexkeyruntime_license_set_license_key(
   NexKeyRuntimeLicenseHandle *handle,
   const char *key

@@ -1,28 +1,49 @@
 # NexKeyRuntime
 
 NexKeyRuntime is a native C/C++14 SDK for update discovery, product notices,
-and offline license verification in desktop plugins backed by MCNexus.
+and offline license verification in desktop plugins and applications backed by
+Nexus.
 
 It exposes two independent handles:
 
-- `NexKeyRuntimeHandle` — update checks and product notices (Perfil A e B,
-  sempre disponível).
-- `NexKeyRuntimeLicenseHandle` — offline license verification and, once the
-  autonomous sync network ships, self-service activation.
+- `NexKeyRuntimeHandle` — update checks and product notices (both profiles,
+  always available).
+- `NexKeyRuntimeLicenseHandle` — offline license verification and self-service
+  activation.
 
-## Perfil A vs. Perfil B
+## About Nexus
 
-- **Perfil A** (in production today): the host application (MCNexus)
-  activates the license; the plugin only loads a ProductData blob and a
-  locally cached receipt, then makes a fast, read-only ALLOW/DENY decision
-  on the render thread.
-- **Perfil B** (declared in the ABI, not yet operational): the plugin itself
-  activates and syncs a license, without a host application in the loop.
+Nexus is infrastructure for licensing, distributing, and updating native
+software that has to keep working offline. MCNexus is its macOS and Windows
+client: it activates licenses and installs, updates, and rolls back the
+products a workstation uses. This SDK is the piece that ships inside those
+products.
+
+- Platform overview and documentation — <https://mcnexus.app>
+- What is implemented and what is not — <https://mcnexus.app/docs/roadmap/>
+- What happens to your customers if Nexus is interrupted, wound down, or no
+  longer operated — <https://mcnexus.app/docs/continuity/>
+- Integration model. It is configured per project today; there is no public
+  self-service onboarding — <https://mcnexus.app/docs/developers/>
+
+## Profile A vs. Profile B
+
+- **Profile A**: the host application (MCNexus) activates the license; the
+  plugin only loads a ProductData blob and a locally cached receipt, then makes
+  a fast, read-only ALLOW/DENY decision on the render thread.
+- **Profile B**: the product itself activates and syncs a license, with no host
+  application in the loop. Since 0.2.0,
   `nexkeyruntime_license_activate`, `_deactivate`, `_request_sync`, and
-  `_publish_receipt` are declared and stable, but the backend network they
-  depend on has not shipped — do not build a Perfil B integration yet.
+  `_publish_receipt` perform real activation, deactivation, and background
+  synchronization against the licensing backend.
 
-## Minimal integration (Perfil A)
+Both profiles work. What is **not** open yet is third-party use of the compiled
+binaries: [BINARY_LICENSE.md](BINARY_LICENSE.md) is a draft pending review, and
+obtaining a tenant and a ProductData blob still goes through a per-project
+setup conversation rather than self-service onboarding. The API is also still
+`0.x` and may evolve — see [docs/ABI_POLICY.md](docs/ABI_POLICY.md).
+
+## Minimal integration (Profile A)
 
 ```c
 #include <nexkeyruntime/nexkeyruntime.h>
@@ -66,9 +87,10 @@ the full lifecycle, including UI status reporting via
 
 There is nothing to compile in this repository. It ships the public
 contract only — headers, JSON schemas, and non-buildable example code.
-Compiled binaries are published as GitHub Releases against this repository;
+Compiled static libraries for macOS (universal) and Windows x64 are published
+as GitHub Releases against this repository, with checksums;
 [examples/cmake-consumer](examples/cmake-consumer) documents the intended
-consumption pattern once a release exists.
+consumption pattern.
 
 ## Public and private boundaries
 
