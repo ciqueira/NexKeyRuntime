@@ -3,6 +3,27 @@
 All notable changes to the NexKeyRuntime public repository will be
 documented in this file.
 
+## [0.5.1]
+
+Windows only. No API changed, so 0.5.0 code recompiles against this header
+untouched.
+
+### Fixed
+
+- **The published `nexkeyruntime.lib` linked the dynamic CRT, which a plain
+  `cl` build never asked for.** CMake's own default for MSVC targets
+  (`CMP0091`) is `/MD`, and nothing in this SDK's build ever overrode it, so
+  every Windows release since 0.1.0 shipped that way. A consumer compiled the
+  ordinary way — no explicit runtime-library flag, which makes `cl` default
+  to `/MT` — got `LNK2038: mismatch detected for 'RuntimeLibrary'` at link
+  time against this library, plus `LNK2005` duplicate CRT symbols and an
+  unresolved `__imp_remove`, all the same root cause. Found integrating 0.5.0
+  into a real OFX plugin. `nexkeyruntime.lib` now links the static CRT
+  (`/MT` release, `/MTd` debug) instead, matching what a default `cl` build
+  already expects and keeping this library free of a VC++ Redistributable
+  requirement on the machine that runs the final binary — the same
+  self-contained posture the vendored Ed25519 backend already has.
+
 ## [0.5.0]
 
 Additive only: nothing in the existing surface moved, was renumbered, or
