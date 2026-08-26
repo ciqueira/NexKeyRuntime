@@ -3,6 +3,42 @@
 All notable changes to the NexKeyRuntime public repository will be
 documented in this file.
 
+## [0.5.0]
+
+Additive only: nothing in the existing surface moved, was renumbered, or
+changed behaviour, so 0.4.0 code recompiles untouched and every existing
+activation keeps working.
+
+### Added
+
+- **Offline (air-gapped) activation and deactivation.** Until now, every
+  activation and deactivation reached the network directly, so a machine
+  that cannot — the backend is unreachable, or the install is deliberately
+  air-gapped — had no way in or out. Two new functions cover that round
+  trip without this SDK ever touching the network itself:
+
+  - `nexkeyruntime_license_export_activation_request()` writes a small JSON
+    request file carrying this machine's binding (derived from the tenant
+    id and the hardware id, never the hardware id itself), the entitlement,
+    and a short prefix of the configured license key. The file is not a
+    secret and is not signed — this machine holds no key to sign with.
+    Whatever comes back in response is a certificate: hand it to the
+    existing `publish_receipt()`, not to this function.
+  - `nexkeyruntime_license_export_deactivation_proof()` gives up this
+    machine's license and writes proof of it, again without touching the
+    network. Local receipts are deleted **before** the proof is written —
+    that ordering is what makes the proof trustworthy without a signature,
+    since forging it gains the forger nothing once their own copy has
+    already stopped working. Returns `NEXKEYRUNTIME_E_NO_RECEIPT` when
+    there is nothing to give up.
+
+  Both functions share the same preconditions as `load_local()`
+  (`set_product_data`/`set_product_file` and `set_tenant_id` must already
+  have succeeded), and whatever answers the exported request goes through
+  the same activation path as the online flow — the same seat limit
+  applies. Offline activation is a different transport for the same
+  decision, not a side door around it.
+
 ## [0.4.0]
 
 No API changed and no stored state is affected, so 0.3.0 code recompiles
