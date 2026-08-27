@@ -3,6 +3,53 @@
 All notable changes to the NexKeyRuntime public repository will be
 documented in this file.
 
+## [0.5.2]
+
+No API changed, so 0.5.1 code recompiles against this header untouched. One
+return code now fires in a case where it previously did not — see the second
+entry below.
+
+### Fixed
+
+- **Giving up one seat deleted every receipt on the machine.** Both
+  `nexkeyruntime_license_deactivate()` and
+  `nexkeyruntime_license_export_deactivation_proof()` cleared the whole
+  `receipts/` directory for the tenant. That directory legitimately holds
+  more than one activation — one file per activation, and several products
+  under one tenant share it — while a deactivation releases exactly ONE seat
+  server-side: the row matched by tenant, licence key and machine binding for
+  that entitlement scope. So deactivating product A on a machine that also
+  held product B destroyed B's local proof of a seat the server still held
+  and still counted. B kept working until its offline window closed, then
+  denied, on a machine that had been online the entire time and a licence
+  nobody had touched. Each of the two now deletes only the receipts carrying
+  its own handle's entitlement, matching what `load_local()` already selects
+  on, and leaves the rest alone. The identical mistake had already been found
+  and fixed for the `revoked` / `activation_removed` sync outcomes in 0.4.0;
+  these two paths were missed.
+
+  The stored licence key follows the same rule. It is one file per tenant, so
+  it is now removed only when no other receipt under that tenant still needs
+  it — a sibling product left with a live receipt and no key has a poller
+  that can never renew, which is the same silent expiry from the other
+  direction.
+
+- **The offline deactivation proof could name an unrelated activation, and
+  could be written when this handle held no seat at all.**
+  `export_deactivation_proof()` took its `activationId` from whichever
+  receipt in the directory happened to parse first, so on a multi-product
+  tenant the proof released one seat while naming another one's id — leaving
+  whoever processed it to act on the wrong row. It now reads the id from this
+  handle's own receipt, before deleting it.
+
+  Consequently the function returns `NEXKEYRUNTIME_E_NO_RECEIPT` in a case
+  where 0.5.1 returned `NEXKEYRUNTIME_OK`: when receipts exist but none of
+  them belong to this handle's entitlement. That is the honest answer —
+  there is no seat here to give up, and the previous behaviour was to delete
+  somebody else's proof and write a file claiming otherwise — but an
+  integrator who treats `E_NO_RECEIPT` as a hard error rather than as "there
+  was nothing to release" will see it where they did not before.
+
 ## [0.5.1]
 
 Windows only. No API changed, so 0.5.0 code recompiles against this header
