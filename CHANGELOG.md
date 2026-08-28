@@ -3,6 +3,20 @@
 All notable changes to the NexKeyRuntime public repository will be
 documented in this file.
 
+## [0.5.3]
+
+Windows only. No API changed, so 0.5.2 code recompiles against this header
+untouched.
+
+### Fixed
+
+- **Windows-on-ARM machines activated as `x86_64` instead of `arm64`.** The
+  architecture reported at activation was fixed at compile time, so it
+  reflected the environment the binary was built for rather than the
+  machine it was actually running on — every Windows-on-ARM activation was
+  indistinguishable from a genuine x64 one. The SDK now determines the
+  host's real architecture at runtime on Windows and reports that.
+
 ## [0.5.2]
 
 No API changed, so 0.5.1 code recompiles against this header untouched. One
