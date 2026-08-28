@@ -23,3 +23,12 @@ scope even though the code lives in a private monorepo, in particular:
   a valid, unexpired, non-revoked local receipt;
 - memory-safety issues reachable across the C ABI boundary (the functions
   declared in `include/nexkeyruntime/nexkeyruntime.h`).
+
+## Threat model and privacy
+
+Policy documents for products built on this SDK — what their licensing
+protections are designed to stop, and what personal data they collect — are
+maintained centrally in the MCNexus repository, not duplicated here:
+
+- [Threat model](https://github.com/ciqueira/MCNexus/blob/main/THREAT_MODEL.md)
+- [Privacy policy](https://github.com/ciqueira/MCNexus/blob/main/PRIVACY.md)
