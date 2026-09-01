@@ -94,8 +94,9 @@ know when something changes:
 
 ```c
 static void on_license(NexKeyRuntimeLicenseStatus status, void *user_data) {
-    /* Runs on the SDK's poller thread. Do not block, and do not call back
-       into the handle from here — record the status and return. */
+    /* Runs on one of the SDK's own threads, not yours. Do not block, and do
+       not call back into the handle from here — record the status and
+       return. */
 }
 nexkeyruntime_license_set_callback(g_license, on_license, NULL);
 ```
@@ -106,9 +107,55 @@ Two behaviours worth knowing, because they are deliberate:
   on 200 machines will not produce 200 requests; each one decides offline from
   the receipt it already has. Override with `_set_headless` in either
   direction if the autodetection is wrong for your host.
-- **Many instances share one background thread.** Fifty nodes of the same
-  effect in one project produce one poller, not fifty. You do not need to
-  deduplicate handles yourself.
+- **Many instances share one background refresh.** Fifty nodes of the same
+  effect in one project produce one, not fifty. You do not need to deduplicate
+  license handles yourself. Note that the update handle documented in
+  [UPDATES_AND_NOTICES.md](UPDATES_AND_NOTICES.md) does **not** do this — one
+  per process is on you there.
 
 `nexkeyruntime_license_destroy` stops and joins that thread before it returns,
 so it is safe for your host to unload the bundle immediately afterwards.
+
+## Staying current
+
+Two things change the license state, and they reach your plugin by different
+routes. Getting this wrong is the most common integration mistake, so it is
+worth being explicit.
+
+**The server changing its mind** — a license expiring, being suspended or
+revoked. The SDK's background refresh brings that in on its own, provided the
+product holds a license key (Profile B, or Profile A on a machine where the
+host application activated). Nothing for you to schedule.
+
+While your host is rendering, that refresh yields so it does not compete for
+resources — bounded, so it still happens within a predictable window even
+under continuous rendering. You do not need to tell the SDK when a render
+starts or ends.
+
+**The user activating or deactivating elsewhere** — in MCNexus, or in another
+copy of your product. This one does **not** arrive on its own: it lands as a
+change to the receipt on disk, and only `load_local` sees it.
+
+So in Profile A, where your plugin never activates anything:
+
+```c
+/* Cheap: a file read and a signature check. Safe on a UI thread, never in a
+   render callback. Rate-limit it if your UI can fire it rapidly. */
+nexkeyruntime_license_load_local(g_license);
+```
+
+Call it whenever your UI is in a position to act on the answer — a panel
+gaining focus, a parameter changing, a "refresh" button. A plugin that only
+calls `load_local` once at load will keep whatever verdict it read then, for
+as long as that instance lives.
+
+If you offer a refresh button, `nexkeyruntime_license_request_sync` asks the
+server as well. Note that it may return before the answer arrives, so treat it
+as "asked", not "answered", and let your next `load_local` pick up the result.
+
+## Updates and product notices
+
+Everything above is the license handle. The other half of the SDK — telling
+your users about new releases and about notices the vendor published — is a
+separate handle with its own lifecycle. See
+[UPDATES_AND_NOTICES.md](UPDATES_AND_NOTICES.md).

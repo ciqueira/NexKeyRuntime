@@ -79,9 +79,25 @@ void pluginUnload(void) {
 `set_tenant_id` and `set_variant` are separate calls, not fields inside the
 ProductData blob — a certificate is checked against whichever tenant and
 variant the plugin declares at runtime, not against values baked into the
-blob at generation time. See [docs/INTEGRATION.md](docs/INTEGRATION.md) for
-the full lifecycle, including UI status reporting via
-`nexkeyruntime_license_get_snapshot`.
+blob at generation time.
+
+## Documentation
+
+- [docs/INTEGRATION.md](docs/INTEGRATION.md) — the license handle end to end:
+  both profiles, UI status reporting, and how activation elsewhere reaches
+  your plugin.
+- [docs/UPDATES_AND_NOTICES.md](docs/UPDATES_AND_NOTICES.md) — the update
+  handle: release checks, product notices, audience and the actions you can
+  offer.
+- [docs/OFFLINE.md](docs/OFFLINE.md) — activating a machine that cannot reach
+  the network, and releasing its seat afterwards.
+- [docs/ABI_POLICY.md](docs/ABI_POLICY.md) — what may change between versions
+  and what may not.
+- [examples/](examples) — one directory per integration: Profile A, Profile B,
+  updates and notices, and offline activation.
+- [schemas/](schemas) — the wire formats: ProductData, the activation
+  certificate, and the update manifest. Published so an integrator can verify
+  what the SDK accepts, and reproduce it without us.
 
 ## Build
 

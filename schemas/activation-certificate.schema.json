@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/ciqueira/NexKeyRuntime/schemas/activation-certificate.schema.json",
   "title": "NexKeyRuntime activation certificate",
-  "description": "Envelope produced by the sdkGateway when activating or syncing a license. `payload` and `signature` are base64url; `payload`, once decoded, is the canonical JSON described by the `payload` definition below, and `signature` is the Ed25519 signature of those exact decoded bytes, verified against the public key in the ProductData keyring identified by `keyId`.",
+  "description": "Envelope produced by the licensing backend when activating or syncing a license. `payload` and `signature` are base64url; `payload`, once decoded, is the canonical JSON described by the `payload` definition below, and `signature` is the Ed25519 signature of those exact decoded bytes, verified against the public key in the ProductData keyring identified by `keyId`.",
   "type": "object",
   "required": ["format", "keyId", "payload", "signature"],
   "additionalProperties": false,

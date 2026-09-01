@@ -7,7 +7,7 @@ explicit for integrators who need to reason about upgrade safety.
 
 ## Versioning
 
-`NEXKEYRUNTIME_VERSION_MAJOR` / `_MINOR` / `_PATCH` (currently `0.1.0`) and
+`NEXKEYRUNTIME_VERSION_MAJOR` / `_MINOR` / `_PATCH` and
 `NEXKEYRUNTIME_VERSION_STRING` are compile-time macros; `nexkeyruntime_
 version()` returns the same string at runtime, so a host can confirm which
 build it actually linked against, not just which headers it compiled with.

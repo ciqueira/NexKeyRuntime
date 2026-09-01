@@ -1,7 +1,13 @@
-/* Minimal Perfil A integration: no OFX host, just the license lifecycle
- * from the README. Not buildable standalone in this repository — see
- * examples/cmake-consumer for the intended consumption pattern once a
- * binary release exists. */
+/* Minimal Profile A integration: no host application, just the license
+ * lifecycle from the README. Not buildable standalone in this repository —
+ * see examples/cmake-consumer for the intended consumption pattern once a
+ * binary release exists.
+ *
+ * See also:
+ *   updates/     — release checks and product notices
+ *   activation/  — Profile B, activating from your own product
+ *   offline/     — activating a machine with no network access
+ */
 
 #include <nexkeyruntime/nexkeyruntime.h>
 #include <stdio.h>

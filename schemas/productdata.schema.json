@@ -38,7 +38,7 @@
           "format": "uri",
           "pattern": "^https://",
           "maxLength": 200,
-          "description": "sdkGateway origin for this environment, e.g. https://sdk.mcnexus.app."
+          "description": "Licensing backend origin for this environment, e.g. https://sdk.mcnexus.app."
         },
         "keyring": {
           "type": "array",
