@@ -108,6 +108,39 @@ as GitHub Releases against this repository, with checksums;
 [examples/cmake-consumer](examples/cmake-consumer) documents the intended
 consumption pattern.
 
+## Windows: link with the static CRT (`/MT`)
+
+The published `nexkeyruntime.lib` is built against the **static** C runtime,
+so anything you link it into must use the same one. This is what `cl` does
+with no runtime flag at all, so an ordinary build already matches — but a
+build that asks for `/MD`, or a CMake project that takes CMake's own default,
+will not:
+
+```text
+error LNK2038: mismatch detected for 'RuntimeLibrary':
+  value 'MT_StaticRelease' doesn't match value 'MD_DynamicRelease'
+```
+
+followed by a wall of `LNK2005` duplicate-CRT symbols. Two fixes exist and
+only one is right:
+
+```bat
+cl /MT ...                          :: compiling directly
+```
+
+```cmake
+# CMake: CMP0091 is NEW from 3.15, and its default is the dynamic CRT.
+set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+```
+
+If your build also compiles CUDA, `nvcc` does not inherit your compiler flags
+— pass `-Xcompiler /MT` as well, or that one object lands on the other runtime
+and produces the same error somewhere less obvious.
+
+The static CRT is deliberate: this library is linked into other people's
+binaries with a build configuration we cannot know, and it already ships
+self-contained.
+
 ## Public and private boundaries
 
 This repository contains only the redistributable contract: the public C

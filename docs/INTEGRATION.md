@@ -153,6 +153,13 @@ If you offer a refresh button, `nexkeyruntime_license_request_sync` asks the
 server as well. Note that it may return before the answer arrives, so treat it
 as "asked", not "answered", and let your next `load_local` pick up the result.
 
+## Windows
+
+The published static library is built against the **static** CRT. Compile your
+own objects the same way — `cl` already does with no flag, but `/MD` or CMake's
+default does not, and the result is an `LNK2038` mismatch at link time. See the
+[README](../README.md#windows-link-with-the-static-crt-mt).
+
 ## Updates and product notices
 
 Everything above is the license handle. The other half of the SDK — telling
