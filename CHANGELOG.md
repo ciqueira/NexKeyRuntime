@@ -3,6 +3,39 @@
 All notable changes to the NexKeyRuntime public repository will be
 documented in this file.
 
+## [0.5.4]
+
+No API changed, so 0.5.3 code recompiles against this header untouched. The
+background poller now behaves differently in one case, described below.
+
+### Fixed
+
+- **The background poller never synced inside a host that keeps
+  rendering.** `nexkeyruntime_license_render_decision()` is the render
+  guard's hot path, and it tells the poller that a render happened so the
+  background refresh can stay out of the way while frames are being produced.
+  The refresh answered by yielding for a short interval — with no ceiling. A
+  host calling `render_decision()` more often than that interval therefore
+  yielded for ever, and the refresh never ran. Hosts call the render guard on
+  every frame of playback, every scrub and every preview, so this was the
+  normal case, not an edge one.
+
+  The effect was that **nothing from the server reached a plugin while it was
+  being used** — not revocation, not suspension, not expiry, not
+  deactivation. The licence kept being honoured on the strength of the
+  offline window, which for a typical certificate is 30 days.
+
+  Measured, two identical processes against a live backend with the same
+  receipt at the same moment, differing only in whether they called
+  `render_decision()` once a second: the idle one synced and rewrote its
+  receipt; the rendering one never synced at all.
+
+  Yielding is now bounded: under continuous rendering the refresh still
+  happens, within 15 minutes at worst. Renders are still deferred to, which is
+  the point of the rule, but a licence check that never runs is worse than one
+  that costs a moment of contention. Nothing in the public API changed, and
+  integrators need do nothing — the SDK still schedules this on its own.
+
 ## [0.5.3]
 
 Windows only. No API changed, so 0.5.2 code recompiles against this header
