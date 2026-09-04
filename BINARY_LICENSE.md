@@ -58,8 +58,8 @@ active Comercial A or Comercial B subscription with Nexus, under the same
 "free for free software, paid when you charge" boundary the rest of the
 platform uses (see [mcnexus.app/pricing](https://mcnexus.app/pricing)).
 This license does not by itself grant you an account, a tenant, or access
-to the `sdkGateway` backend the binary talks to — those are provisioned
-separately under the applicable plan.
+to the backend the binary talks to — those are provisioned separately under
+the applicable plan.
 
 ### 3. Attribution
 
