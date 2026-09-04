@@ -37,11 +37,12 @@ products.
   `_publish_receipt` perform real activation, deactivation, and background
   synchronization against the licensing backend.
 
-Both profiles work. What is **not** open yet is third-party use of the compiled
-binaries: [BINARY_LICENSE.md](BINARY_LICENSE.md) is a draft pending review, and
-obtaining a tenant and a ProductData blob still goes through a per-project
-setup conversation rather than self-service onboarding. The API is also still
-`0.x` and may evolve — see [docs/ABI_POLICY.md](docs/ABI_POLICY.md).
+Both profiles work, and the public API is stable as of 1.0.0 — see
+[docs/ABI_POLICY.md](docs/ABI_POLICY.md) for the compatibility guarantees.
+Third-party use of the compiled binaries is licensed under
+[BINARY_LICENSE.md](BINARY_LICENSE.md). What is **not** open yet is
+self-service onboarding: obtaining a tenant and a ProductData blob still
+goes through a per-project setup conversation.
 
 ## Minimal integration (Profile A)
 
@@ -155,4 +156,4 @@ implementation source.
 The contents of this repository (headers, schemas, docs, examples) are
 licensed under the Apache License, Version 2.0 — see [LICENSE](LICENSE).
 Compiled binary releases are governed separately by
-[BINARY_LICENSE.md](BINARY_LICENSE.md), currently a draft.
+[BINARY_LICENSE.md](BINARY_LICENSE.md).

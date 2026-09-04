@@ -25,10 +25,10 @@ extern "C" {
    they are public API (the package-consumer test asserts nexkeyruntime_version()
    equals NEXKEYRUNTIME_VERSION_STRING), and this header ships as SOURCE in the
    public repository rather than as a build artifact. */
-#define NEXKEYRUNTIME_VERSION_MAJOR 0
-#define NEXKEYRUNTIME_VERSION_MINOR 5
-#define NEXKEYRUNTIME_VERSION_PATCH 4
-#define NEXKEYRUNTIME_VERSION_STRING "0.5.4"
+#define NEXKEYRUNTIME_VERSION_MAJOR 1
+#define NEXKEYRUNTIME_VERSION_MINOR 0
+#define NEXKEYRUNTIME_VERSION_PATCH 0
+#define NEXKEYRUNTIME_VERSION_STRING "1.0.0"
 
 #define NEXKEYRUNTIME_VERSION_CAPACITY 64
 #define NEXKEYRUNTIME_ID_CAPACITY 160

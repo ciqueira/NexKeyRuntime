@@ -3,6 +3,20 @@
 All notable changes to the NexKeyRuntime public repository will be
 documented in this file.
 
+## [1.0.0] - 2026-09-04
+
+No API change from 0.5.4 — 0.5.4 code recompiles against this header
+untouched. This release is a stability declaration, not a functional one:
+the compatibility guarantees `docs/ABI_POLICY.md` already documented
+(append-only result codes, structs that only grow via `struct_size`, opaque
+handles, no allocator crossing the ABI boundary) are now a committed
+promise. From here, a breaking change requires `2.0`; `1.x` releases are
+additive only.
+
+Also, `BINARY_LICENSE.md` — the license governing these compiled binaries
+for third-party developers who statically link them into their own
+product — is finalized, clearing them for use by developers outside Nexus.
+
 ## [0.5.4]
 
 No API changed, so 0.5.3 code recompiles against this header untouched. The

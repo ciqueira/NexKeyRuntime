@@ -11,8 +11,10 @@ explicit for integrators who need to reason about upgrade safety.
 `NEXKEYRUNTIME_VERSION_STRING` are compile-time macros; `nexkeyruntime_
 version()` returns the same string at runtime, so a host can confirm which
 build it actually linked against, not just which headers it compiled with.
-While `0.x`, the public API may still evolve — see `CHANGELOG.md` for what
-changed and when.
+As of 1.0.0, the public API is stable: an existing function, struct layout,
+or result code never changes in a way that breaks a binary already compiled
+against it — only additive changes ship in a `1.x`. A breaking change would
+require `2.0`. See `CHANGELOG.md` for what changed and when.
 
 ## Result codes never get renumbered
 
