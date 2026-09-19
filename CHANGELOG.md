@@ -3,6 +3,14 @@
 All notable changes to the NexKeyRuntime public repository will be
 documented in this file.
 
+## [1.0.1] - 2026-09-19
+
+Windows only. No API changed.
+
+### Fixed
+
+- **MSIX AppContainer virtualization blocked receipts from being read by non-packaged apps.** When the SDK was activated inside an MSIX packaged app (like MCNexus), Windows File System virtualization redirected writes to `%LOCALAPPDATA%` into a hidden `LocalCache` directory within the app's isolated container. OFX plugins running inside standard Win32 host applications (like DaVinci Resolve) read the real `%LOCALAPPDATA%`, failed to find the receipt, and denied the render. The SDK now stores receipts in `%PROGRAMDATA%` on Windows, which is not virtualized for full-trust MSIX apps and is reliably readable by all applications.
+
 ## [1.0.0] - 2026-09-04
 
 No API change from 0.5.4 — 0.5.4 code recompiles against this header
