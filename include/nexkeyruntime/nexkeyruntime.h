@@ -26,9 +26,9 @@ extern "C" {
    equals NEXKEYRUNTIME_VERSION_STRING), and this header ships as SOURCE in the
    public repository rather than as a build artifact. */
 #define NEXKEYRUNTIME_VERSION_MAJOR 1
-#define NEXKEYRUNTIME_VERSION_MINOR 0
+#define NEXKEYRUNTIME_VERSION_MINOR 1
 #define NEXKEYRUNTIME_VERSION_PATCH 0
-#define NEXKEYRUNTIME_VERSION_STRING "1.0.0"
+#define NEXKEYRUNTIME_VERSION_STRING "1.1.0"
 
 #define NEXKEYRUNTIME_VERSION_CAPACITY 64
 #define NEXKEYRUNTIME_ID_CAPACITY 160
@@ -106,6 +106,11 @@ typedef enum NexKeyRuntimeNoticeSeverity {
   NEXKEYRUNTIME_NOTICE_RECOMMENDED = 1,
   NEXKEYRUNTIME_NOTICE_CRITICAL = 2
 } NexKeyRuntimeNoticeSeverity;
+
+typedef enum NexKeyRuntimeScope {
+  NEXKEYRUNTIME_SCOPE_USER = 0,
+  NEXKEYRUNTIME_SCOPE_SYSTEM = 1
+} NexKeyRuntimeScope;
 
 typedef struct NexKeyRuntimeManifestRequest {
   size_t struct_size;
@@ -328,6 +333,13 @@ NEXKEYRUNTIME_API NexKeyRuntimeResult nexkeyruntime_license_set_product_file(
 NEXKEYRUNTIME_API NexKeyRuntimeResult nexkeyruntime_license_set_tenant_id(
   NexKeyRuntimeLicenseHandle *handle,
   const char *tenant_id
+);
+/* Controls whether the license state is stored and read from a user-specific
+   profile location (USER) or a machine-wide shared location (SYSTEM). 
+   Must be called before load_local() or activate(). Defaults to USER. */
+NEXKEYRUNTIME_API NexKeyRuntimeResult nexkeyruntime_license_set_scope(
+  NexKeyRuntimeLicenseHandle *handle,
+  NexKeyRuntimeScope scope
 );
 /* Optional — a tenant with exactly one variant never needs this; the
    entitlement checked defaults to "download:default" if unset. */

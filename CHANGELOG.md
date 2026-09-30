@@ -3,6 +3,25 @@
 All notable changes to the NexKeyRuntime public repository will be
 documented in this file.
 
+## [1.1.0] - 2026-09-30
+
+### Added
+
+- **`NexKeyRuntimeScope` enum and `nexkeyruntime_license_set_scope()`** — callers can now choose whether the license state is stored and read from a **user-specific** location (`NEXKEYRUNTIME_SCOPE_USER`, the new default) or a **machine-wide** location (`NEXKEYRUNTIME_SCOPE_SYSTEM`). Must be called before `nexkeyruntime_license_load_local()` or `nexkeyruntime_license_activate()`. If not called, behavior is identical to previous releases (`NEXKEYRUNTIME_SCOPE_USER`).
+
+  Platform mapping:
+
+  | Scope | Windows | macOS |
+  |---|---|---|
+  | `USER` | `%LOCALAPPDATA%\NexKeyRuntime\<tenant>` | `~/Library/Application Support/NexKeyRuntime/<tenant>` |
+  | `SYSTEM` | `%PROGRAMDATA%\NexKeyRuntime\<tenant>` | `/Library/Application Support/NexKeyRuntime/<tenant>` |
+
+  This replaces the hardcoded `%PROGRAMDATA%` path introduced in 1.0.1 for MSIX compatibility. Applications (such as MCNexus) and plugins should now use the default `USER` scope (`NEXKEYRUNTIME_SCOPE_USER`), which requires no elevation, is not subject to File System Virtualization, and correctly segregates license data per-user.
+
+  The background poller's shared-poller key now includes the scope, so a `USER` handle and a `SYSTEM` handle for the same tenant-and-variant pair no longer share a single poller.
+
+  No existing API changed. 1.0.x code recompiles against this header untouched; the new `set_scope` call is purely optional and additive.
+
 ## [1.0.1] - 2026-09-19
 
 Windows only. No API changed.
