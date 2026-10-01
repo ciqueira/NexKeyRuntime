@@ -3,6 +3,16 @@
 All notable changes to the NexKeyRuntime public repository will be
 documented in this file.
 
+## [1.2.0] - 2026-10-01
+
+### Changed
+
+- SDK activation and sync requests now include the entitlement configured on
+  the license handle. The backend can issue a certificate for that specific
+  variant when a license grants multiple download entitlements. The public C
+  API and certificate format are unchanged; single-entitlement licenses remain
+  compatible.
+
 ## [1.1.0] - 2026-09-30
 
 ### Added
