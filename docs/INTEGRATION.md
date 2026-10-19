@@ -3,8 +3,8 @@
 This is the supported integration path today: the host application
 (MCNexus) activates and syncs the license; your plugin only verifies.
 Profile B (the product activating on its own) is implemented as well and is
-covered further down; third-party use of the compiled binaries is still gated
-on the draft binary license — see the [README](../README.md).
+covered further down; third-party use of the compiled binaries is governed by
+[BINARY_LICENSE.md](../BINARY_LICENSE.md) — see the [README](../README.md).
 
 ## Lifecycle
 
