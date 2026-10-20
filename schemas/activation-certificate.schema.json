@@ -29,7 +29,7 @@
   "$defs": {
     "payload": {
       "type": "object",
-      "description": "Decoded, verified payload — mirrors nexkeyruntime::licensing::Claims (MCSDK/src/licensing/Certificate/Claims.h) field-for-field.",
+      "description": "Decoded, verified payload; mirrors nexkeyruntime::licensing::Claims (MCSDK/src/licensing/Certificate/Claims.h) field-for-field.",
       "required": [
         "formatVersion", "type", "issuer", "tenantId", "audience",
         "activationId", "certificateId", "machineBinding", "status",

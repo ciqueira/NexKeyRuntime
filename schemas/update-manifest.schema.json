@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://mcnexus.app/schemas/nexkeyruntime/update-manifest.schema.json",
   "title": "NexKeyRuntime update manifest",
-  "description": "What the SDK's update handle fetches and evaluates: the newest release for one target, plus the notices that apply to it. Unsigned by design — it carries no secret and grants nothing, so nothing here needs to be trusted beyond the transport. Every limit below is enforced by the SDK's parser: a manifest that violates any of them is rejected whole, not partially applied.",
+  "description": "What the SDK's update handle fetches and evaluates: the newest release for one target, plus the notices that apply to it. Unsigned by design; it carries no secret and grants nothing, so nothing here needs to be trusted beyond the transport. Every limit below is enforced by the SDK's parser: a manifest that violates any of them is rejected whole, not partially applied.",
   "type": "object",
   "required": ["schemaVersion", "target"],
   "additionalProperties": true,
@@ -12,7 +12,7 @@
       "const": 1
     },
     "target": {
-      "description": "Which product this manifest describes. Must match what the SDK was configured with, or the manifest is rejected — this is what stops one product's manifest being served to another.",
+      "description": "Which product this manifest describes. Must match what the SDK was configured with, or the manifest is rejected; this is what stops one product's manifest being served to another.",
       "type": "object",
       "required": ["tenantId", "artifactId", "name"],
       "properties": {
@@ -25,7 +25,7 @@
       }
     },
     "latestRelease": {
-      "description": "The newest release on this channel, or null when there is none. The SDK reports an update only when this version is strictly greater than the running one AND this channel equals the configured one — publishing a beta release under a stable key silently reaches nobody.",
+      "description": "The newest release on this channel, or null when there is none. The SDK reports an update only when this version is strictly greater than the running one AND this channel equals the configured one; publishing a beta release under a stable key silently reaches nobody.",
       "oneOf": [
         { "type": "null" },
         {
@@ -87,12 +87,12 @@
       "type": "string", "minLength": 1, "maxLength": 63
     },
     "timestamp": {
-      "description": "UTC, exactly YYYY-MM-DDTHH:MM:SSZ. No offsets, no fractional seconds — the SDK parses this shape and no other.",
+      "description": "UTC, exactly YYYY-MM-DDTHH:MM:SSZ. No offsets, no fractional seconds; the SDK parses this shape and no other.",
       "type": "string",
       "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
     },
     "mcnexusHttpsUrl": {
-      "description": "Must begin with https://mcnexus.app/ — the SDK enforces this prefix and rejects anything else, including your own domain. See the note on self-hosting in docs/UPDATES_AND_NOTICES.md.",
+      "description": "Must begin with https://mcnexus.app/ (the SDK enforces this prefix and rejects anything else, including your own domain. See the note on self-hosting in docs/UPDATES_AND_NOTICES.md).",
       "type": "string", "maxLength": 2047,
       "pattern": "^https://mcnexus\\.app/[^\\s\\\\]*$"
     },
@@ -123,7 +123,7 @@
           "type": "integer", "minimum": 1
         },
         "type": {
-          "description": "Descriptive only. It does not change what the SDK selects or when — use it for your own presentation choices.",
+          "description": "Descriptive only. It does not change what the SDK selects or when; use it for your own presentation choices.",
           "enum": ["update", "compatibility", "security", "maintenance", "migration", "deprecation"]
         },
         "severity": {
@@ -132,7 +132,7 @@
         },
         "startsAt": { "$ref": "#/$defs/timestamp" },
         "expiresAt": {
-          "description": "Required. A notice is shown only while startsAt <= now < expiresAt — there is no such thing as a notice that never expires.",
+          "description": "Required. A notice is shown only while startsAt <= now < expiresAt; there is no such thing as a notice that never expires.",
           "$ref": "#/$defs/timestamp"
         },
         "dismissible": {
@@ -144,7 +144,7 @@
           "type": "integer", "minimum": 0, "maximum": 2678400
         },
         "audience": {
-          "description": "Who sees it. Every field is optional and each omitted one means 'everyone' — an absent audience reaches every user of this target. All of it is evaluated on the device; the host is never sent to the backend.",
+          "description": "Who sees it. Every field is optional and each omitted one means 'everyone' (an absent audience reaches every user of this target). All of it is evaluated on the device; the host is never sent to the backend.",
           "type": "object",
           "properties": {
             "minPluginVersion": { "$ref": "#/$defs/version" },

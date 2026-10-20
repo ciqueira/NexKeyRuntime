@@ -17,7 +17,7 @@ documented in this file.
 
 ### Added
 
-- **`NexKeyRuntimeScope` enum and `nexkeyruntime_license_set_scope()`** — callers can now choose whether the license state is stored and read from a **user-specific** location (`NEXKEYRUNTIME_SCOPE_USER`, the new default) or a **machine-wide** location (`NEXKEYRUNTIME_SCOPE_SYSTEM`). Must be called before `nexkeyruntime_license_load_local()` or `nexkeyruntime_license_activate()`. If not called, behavior is identical to previous releases (`NEXKEYRUNTIME_SCOPE_USER`).
+- **`NexKeyRuntimeScope` enum and `nexkeyruntime_license_set_scope()`**: callers can now choose whether the license state is stored and read from a **user-specific** location (`NEXKEYRUNTIME_SCOPE_USER`, the new default) or a **machine-wide** location (`NEXKEYRUNTIME_SCOPE_SYSTEM`). Must be called before `nexkeyruntime_license_load_local()` or `nexkeyruntime_license_activate()`. If not called, behavior is identical to previous releases (`NEXKEYRUNTIME_SCOPE_USER`).
 
   Platform mapping:
 
@@ -42,7 +42,7 @@ Windows only. No API changed.
 
 ## [1.0.0] - 2026-09-04
 
-No API change from 0.5.4 — 0.5.4 code recompiles against this header
+No API change from 0.5.4: 0.5.4 code recompiles against this header
 untouched. This release is a stability declaration, not a functional one:
 the compatibility guarantees `docs/ABI_POLICY.md` already documented
 (append-only result codes, structs that only grow via `struct_size`, opaque
@@ -50,9 +50,9 @@ handles, no allocator crossing the ABI boundary) are now a committed
 promise. From here, a breaking change requires `2.0`; `1.x` releases are
 additive only.
 
-Also, `BINARY_LICENSE.md` — the license governing these compiled binaries
+Also, `BINARY_LICENSE.md` (the license governing these compiled binaries
 for third-party developers who statically link them into their own
-product — is finalized, clearing them for use by developers outside Nexus.
+product) is finalized, clearing them for use by developers outside Nexus.
 
 ## [0.5.4]
 
@@ -65,14 +65,14 @@ background poller now behaves differently in one case, described below.
   rendering.** `nexkeyruntime_license_render_decision()` is the render
   guard's hot path, and it tells the poller that a render happened so the
   background refresh can stay out of the way while frames are being produced.
-  The refresh answered by yielding for a short interval — with no ceiling. A
+  The refresh answered by yielding for a short interval, with no ceiling. A
   host calling `render_decision()` more often than that interval therefore
   yielded for ever, and the refresh never ran. Hosts call the render guard on
   every frame of playback, every scrub and every preview, so this was the
   normal case, not an edge one.
 
   The effect was that **nothing from the server reached a plugin while it was
-  being used** — not revocation, not suspension, not expiry, not
+  being used**: not revocation, not suspension, not expiry, not
   deactivation. The licence kept being honoured on the strength of the
   offline window, which for a typical certificate is 30 days.
 
@@ -85,7 +85,7 @@ background poller now behaves differently in one case, described below.
   happens, within 15 minutes at worst. Renders are still deferred to, which is
   the point of the rule, but a licence check that never runs is worse than one
   that costs a moment of contention. Nothing in the public API changed, and
-  integrators need do nothing — the SDK still schedules this on its own.
+  integrators need do nothing; the SDK still schedules this on its own.
 
 ## [0.5.3]
 
@@ -97,14 +97,14 @@ untouched.
 - **Windows-on-ARM machines activated as `x86_64` instead of `arm64`.** The
   architecture reported at activation was fixed at compile time, so it
   reflected the environment the binary was built for rather than the
-  machine it was actually running on — every Windows-on-ARM activation was
+  machine it was actually running on; every Windows-on-ARM activation was
   indistinguishable from a genuine x64 one. The SDK now determines the
   host's real architecture at runtime on Windows and reports that.
 
 ## [0.5.2]
 
 No API changed, so 0.5.1 code recompiles against this header untouched. One
-return code now fires in a case where it previously did not — see the second
+return code now fires in a case where it previously did not: see the second
 entry below.
 
 ### Fixed
@@ -113,8 +113,8 @@ entry below.
   `nexkeyruntime_license_deactivate()` and
   `nexkeyruntime_license_export_deactivation_proof()` cleared the whole
   `receipts/` directory for the tenant. That directory legitimately holds
-  more than one activation — one file per activation, and several products
-  under one tenant share it — while a deactivation releases exactly ONE seat
+  more than one activation (one file per activation, and several products
+  under one tenant share it), while a deactivation releases exactly ONE seat
   server-side: the row matched by tenant, licence key and machine binding for
   that entitlement scope. So deactivating product A on a machine that also
   held product B destroyed B's local proof of a seat the server still held
@@ -128,7 +128,7 @@ entry below.
 
   The stored licence key follows the same rule. It is one file per tenant, so
   it is now removed only when no other receipt under that tenant still needs
-  it — a sibling product left with a live receipt and no key has a poller
+  it; a sibling product left with a live receipt and no key has a poller
   that can never renew, which is the same silent expiry from the other
   direction.
 
@@ -136,15 +136,15 @@ entry below.
   could be written when this handle held no seat at all.**
   `export_deactivation_proof()` took its `activationId` from whichever
   receipt in the directory happened to parse first, so on a multi-product
-  tenant the proof released one seat while naming another one's id — leaving
+  tenant the proof released one seat while naming another one's id, leaving
   whoever processed it to act on the wrong row. It now reads the id from this
   handle's own receipt, before deleting it.
 
   Consequently the function returns `NEXKEYRUNTIME_E_NO_RECEIPT` in a case
   where 0.5.1 returned `NEXKEYRUNTIME_OK`: when receipts exist but none of
-  them belong to this handle's entitlement. That is the honest answer —
+  them belong to this handle's entitlement. That is the honest answer (
   there is no seat here to give up, and the previous behaviour was to delete
-  somebody else's proof and write a file claiming otherwise — but an
+  somebody else's proof and write a file claiming otherwise), but an
   integrator who treats `E_NO_RECEIPT` as a hard error rather than as "there
   was nothing to release" will see it where they did not before.
 
@@ -159,14 +159,14 @@ untouched.
   `cl` build never asked for.** CMake's own default for MSVC targets
   (`CMP0091`) is `/MD`, and nothing in this SDK's build ever overrode it, so
   every Windows release since 0.1.0 shipped that way. A consumer compiled the
-  ordinary way — no explicit runtime-library flag, which makes `cl` default
-  to `/MT` — got `LNK2038: mismatch detected for 'RuntimeLibrary'` at link
+  ordinary way (no explicit runtime-library flag, which makes `cl` default
+  to `/MT`) got `LNK2038: mismatch detected for 'RuntimeLibrary'` at link
   time against this library, plus `LNK2005` duplicate CRT symbols and an
   unresolved `__imp_remove`, all the same root cause. Found integrating 0.5.0
   into a real OFX plugin. `nexkeyruntime.lib` now links the static CRT
   (`/MT` release, `/MTd` debug) instead, matching what a default `cl` build
   already expects and keeping this library free of a VC++ Redistributable
-  requirement on the machine that runs the final binary — the same
+  requirement on the machine that runs the final binary, which is the same
   self-contained posture the vendored Ed25519 backend already has.
 
 ## [0.5.0]
@@ -179,20 +179,20 @@ activation keeps working.
 
 - **Offline (air-gapped) activation and deactivation.** Until now, every
   activation and deactivation reached the network directly, so a machine
-  that cannot — the backend is unreachable, or the install is deliberately
-  air-gapped — had no way in or out. Two new functions cover that round
+  that cannot (the backend is unreachable, or the install is deliberately
+  air-gapped) had no way in or out. Two new functions cover that round
   trip without this SDK ever touching the network itself:
 
   - `nexkeyruntime_license_export_activation_request()` writes a small JSON
     request file carrying this machine's binding (derived from the tenant
     id and the hardware id, never the hardware id itself), the entitlement,
     and a short prefix of the configured license key. The file is not a
-    secret and is not signed — this machine holds no key to sign with.
+    secret and is not signed, as this machine holds no key to sign with.
     Whatever comes back in response is a certificate: hand it to the
     existing `publish_receipt()`, not to this function.
   - `nexkeyruntime_license_export_deactivation_proof()` gives up this
     machine's license and writes proof of it, again without touching the
-    network. Local receipts are deleted **before** the proof is written —
+    network. Local receipts are deleted **before** the proof is written;
     that ordering is what makes the proof trustworthy without a signature,
     since forging it gains the forger nothing once their own copy has
     already stopped working. Returns `NEXKEYRUNTIME_E_NO_RECEIPT` when
@@ -201,7 +201,7 @@ activation keeps working.
   Both functions share the same preconditions as `load_local()`
   (`set_product_data`/`set_product_file` and `set_tenant_id` must already
   have succeeded), and whatever answers the exported request goes through
-  the same activation path as the online flow — the same seat limit
+  the same activation path as the online flow: the same seat limit
   applies. Offline activation is a different transport for the same
   decision, not a side door around it.
 
@@ -214,13 +214,13 @@ the SDK reports about itself and the machine.
 ### Added
 
 - **The SDK now reports its own version on every activation and sync.** It was
-  the one participant that could not be wrong about it — no integrator has to
-  remember a call, and no build can claim a version it is not — yet it was the
+  the one participant that could not be wrong about it (no integrator has to
+  remember a call, and no build can claim a version it is not), yet it was the
   one thing never sent. Until now the only way to tell which SDK produced an
   activation was to infer it from `fingerprintVersion`, which answers a
   narrower question.
 
-- **`set_metadata("product", ...)`** — what the integrating program calls
+- **`set_metadata("product", ...)`**: what the integrating program calls
   itself, e.g. `"mcnexus"` or the plugin's own name. An activation is shared by
   every program on a machine holding the same entitlement, and each one syncs;
   without a name attached, the version each reports overwrites the last, and
@@ -229,7 +229,7 @@ the SDK reports about itself and the machine.
   declares nothing still works, and is recorded as unknown.
 
 - **Operating system version** is collected and sent: `kern.osproductversion`
-  on macOS, `RtlGetVersion` on Windows. Reported, never enforced — it exists so
+  on macOS, `RtlGetVersion` on Windows. Reported, never enforced: it exists so
   an activation can be told apart from another of the same customer's without
   anything personal being stored. A machine that will not answer omits the
   field.
@@ -239,7 +239,7 @@ the SDK reports about itself and the machine.
 **Every existing activation must be redone.** No API changed and 0.2.x code
 recompiles untouched, but the machine binding this SDK computes is different,
 so a certificate issued to 0.2.x reports `DEVICE_MISMATCH` under 0.3.0. Read
-the migration note below before upgrading — the server cannot repair this on
+the migration note below before upgrading: the server cannot repair this on
 its own.
 
 ### Fixed
@@ -248,7 +248,7 @@ its own.
   running on.** The 256-bit hash behind `machineBinding` was deliberately
   *not* the same algorithm on every backend: SHA-256 when built against
   libsodium, BLAKE2b-256 when built against the vendored Monocypher. The
-  reasoning was that the value never left the process — but it does. It is
+  reasoning was that the value never left the process, but it does. It is
   sent to the gateway at activation, signed into the certificate, and then
   recomputed and compared by a *different binary* on the same machine: one
   program activates, another verifies.
@@ -258,13 +258,13 @@ its own.
   with everything else. The moment one consumer was built on a machine with
   libsodium installed, it computed a binding no other build recognised, and
   the failure surfaced as `DEVICE_MISMATCH` on hardware that had not changed
-  — the least informative symptom possible for the actual cause.
+  (the least informative symptom possible for the actual cause).
 
   `localHash256` is now **SHA-512 truncated to the leading 32 bytes** on every
   backend, and a known-answer test pins it so the two can never drift apart
   again silently. SHA-512 was chosen over the alternatives because it is
   present in both backends already and reproducible in every language and
-  runtime — including Node and WebCrypto, where BLAKE2b-256 is simply not
+  runtime, including Node and WebCrypto, where BLAKE2b-256 is simply not
   available and cannot be derived by truncating BLAKE2b-512.
 
 ### Added
@@ -277,7 +277,7 @@ its own.
 ### Migrating from 0.2.x
 
 The binding changes for every machine, and the server **cannot** map an old
-binding to a new one — it only ever receives the hash, never the fingerprint
+binding to a new one; it only ever receives the hash, never the fingerprint
 behind it. So a machine that re-activates looks like a new machine and
 consumes another seat, which on a single-seat licence means it is refused.
 
@@ -298,7 +298,7 @@ No API changed, so 0.2.2 code recompiles against this header untouched.
   just activated with.** The issuer stamps `notBefore` from its own clock at
   the moment it signs; the SDK compared that against the local clock with no
   tolerance, so any machine running even a second or two behind the gateway
-  failed verification with "certificate is not yet valid" — at activation,
+  failed verification with "certificate is not yet valid" at activation,
   the one moment the certificate is guaranteed to be fresh. Network latency
   masked it whenever the round trip exceeded the drift, which is why it
   survived: it reproduces on drifted clocks and on fast connections, not in
@@ -306,7 +306,7 @@ No API changed, so 0.2.2 code recompiles against this header untouched.
   isolated studio and render-farm networks this SDK is built for, and those
   are exactly the machines that drift. Now given the same 60-second leeway a
   JWT library applies to `nbf`, tracked in a field of its own rather than
-  folded into the clock-rollback tolerance — rollback is fraud to detect,
+  folded into the clock-rollback tolerance: rollback is fraud to detect,
   skew is drift to tolerate, and conflating them would let one be widened for
   the other's reasons. Only the *start* of the validity window is forgiving:
   `expiresAt` and `offlineValidUntil` remain strict, so no licence runs a
@@ -316,7 +316,7 @@ No API changed, so 0.2.2 code recompiles against this header untouched.
 
 A headless node does local verification only and never starts the background
 poller, so its receipt is never renewed and it stops being valid once the
-offline window closes — with nothing wrong on the machine or the server. This
+offline window closes, with nothing wrong on the machine or the server. This
 is existing behaviour, not a change, but it is easy to be surprised by: a node
 activated once and left running will deny after the grace period configured
 for that licence. Until file-based renewal exists, size the offline grace to
@@ -331,32 +331,32 @@ untouched.
 
 - **A stalled network call could hang forever on macOS.** After this SDK's
   own timeout elapsed and it cancelled the in-flight request, it waited a
-  second time — with no timeout — for NSURLSession to confirm the
+  second time (with no timeout) for NSURLSession to confirm the
   cancellation. That confirmation is not contractually guaranteed to arrive
   promptly; Apple's own developer forums document cases where it does not
   arrive at all. When that happened, the calling thread blocked with no
-  bound — reachable through `nexkeyruntime_license_destroy()`, meaning a host
+  bound, reachable through `nexkeyruntime_license_destroy()`, meaning a host
   unloading the plugin at the wrong moment could hang on it. Every HTTP call
   this SDK makes on macOS shares the same transport, so this affected update
   checks, `activate`/`deactivate`/`sync`, and the background poller alike.
   Fixed to give up and return once its own timeout is reached, regardless of
-  whether the OS ever confirms the cancellation — verified via ASan across a
+  whether the OS ever confirms the cancellation (verified via ASan across a
   real network call that the object is destroyed at that point without
-  triggering a later, dangling write. Windows was never affected: it enforces
+  triggering a later, dangling write). Windows was never affected: it enforces
   timeouts at the OS level with no equivalent wait.
 
 ## [0.2.1]
 
 Bug fixes only. No API changed, so 0.2.0 code recompiles against this header
-untouched — but every fix here is one you would rather have.
+untouched, but every fix here is one you would rather have.
 
 ### Fixed
 
 - **A stale license key could delete a valid receipt.** The background poller
   captured its request when it started, so deactivating one license and
   activating another left it syncing the key it began with. The server
-  correctly answered `activation_removed` for that key — a true verdict about
-  the wrong license — and the SDK then deleted *every* receipt in the tenant
+  correctly answered `activation_removed` for that key (a true verdict about
+  the wrong license), and the SDK then deleted *every* receipt in the tenant
   directory rather than the one it was told about. Activating a new key and
   forcing a sync could therefore destroy the licence you had just installed.
   The request is now rebuilt each cycle, an absent stored key means "do not
@@ -376,7 +376,7 @@ untouched — but every fix here is one you would rather have.
 
 ### Added
 
-- `nexkeyruntime_license_set_callback` — subscribe to background sync
+- `nexkeyruntime_license_set_callback`: subscribe to background sync
   results. Invoked on the poller thread whenever a sync completes, so a host
   learns about a suspension or revocation without polling the SDK itself.
   The callback must not block and must not call back into the handle.
@@ -404,6 +404,6 @@ untouched — but every fix here is one you would rather have.
   formats, and a minimal non-OFX C example.
 
 This entry marks the first public-repository release of the scaffold, not
-the SDK's overall history — NexKeyRuntime itself has already shipped
+the SDK's overall history: NexKeyRuntime itself has already shipped
 offline licensing (Perfil A) in the private monorepo; this repository is
 catching up to that state, not starting from zero.

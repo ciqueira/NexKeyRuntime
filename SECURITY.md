@@ -11,7 +11,7 @@ mitigation. Please avoid accessing data that does not belong to you.
 ## Scope
 
 This repository ships the public contract only (headers, schemas, docs,
-examples) — it must never contain license keys, backend credentials,
+examples); it must never contain license keys, backend credentials,
 protected download URLs, tenant secrets, or signing keys. If you find one
 committed here, report it as a vulnerability, not a bug.
 
@@ -26,8 +26,8 @@ scope even though the code lives in a private monorepo, in particular:
 
 ## Threat model and privacy
 
-Policy documents for products built on this SDK — what their licensing
-protections are designed to stop, and what personal data they collect — are
+Policy documents for products built on this SDK (what their licensing
+protections are designed to stop, and what personal data they collect) are
 maintained centrally in the MCNexus repository, not duplicated here:
 
 - [Threat model](https://github.com/ciqueira/MCNexus/blob/main/THREAT_MODEL.md)

@@ -1,8 +1,8 @@
 # Offline activation
 
-For machines that cannot reach the network — an air-gapped installation, a
+For machines that cannot reach the network (an air-gapped installation, a
 facility that does not allow outbound connections, or a backend that is
-unreachable when the user needs to work.
+unreachable when the user needs to work).
 
 It is also the mechanism behind Nexus's continuity commitment: because a
 certificate is verified against the keyring inside your product and not
@@ -37,14 +37,14 @@ Writes a small JSON file identifying this machine: which tenant, which
 entitlement, this machine's binding, and a short prefix of the license key if
 one has been entered. **It contains no secret.** The binding is derived from
 the machine, not the machine's hardware identifiers themselves, and the file
-is not signed — this machine holds no key to sign with.
+is not signed, as this machine holds no key to sign with.
 
 The license key is optional here, unlike online activation. Exporting a
 request for a machine where the user has not typed a key yet is a real case:
 the operator often collects it separately.
 
 Requires `set_product_data` (or `set_product_file`) and `set_tenant_id` to
-have succeeded first — the same precondition as `load_local`. Overwrites the
+have succeeded first (the same precondition as `load_local`). Overwrites the
 file if it exists.
 
 ## Installing what comes back
@@ -56,7 +56,7 @@ nexkeyruntime_license_publish_receipt(g_license, certificate_text);
 
 The certificate is a plain signed document, not tied to a particular filename.
 It is verified against the ProductData keyring exactly as any other receipt
-is — on this call, and on every load afterwards. Importing it offline weakens
+is: on this call, and on every load afterwards. Importing it offline weakens
 nothing: a certificate issued for another machine, or altered in transit, is
 rejected here for the same reasons it would be rejected online.
 
@@ -87,5 +87,5 @@ fresh request/certificate round trip.
 Offline licences still expire, and they still carry an offline window. A
 machine that never reaches the network is relying entirely on the validity
 baked into its certificate, so the practical question for an air-gapped site
-is how long that window is — arrange it with your vendor before the machine
+is how long that window is: arrange it with your vendor before the machine
 goes offline, not after.

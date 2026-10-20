@@ -14,8 +14,8 @@ public by design, so nothing needs to be signed or kept secret.
 - Asks the backend what the newest release is for your product, on your
   platform, architecture and channel, and tells you whether it is newer than
   what is running.
-- Delivers notices the vendor published — compatibility warnings, security
-  advisories, maintenance windows, migration and deprecation notes — already
+- Delivers notices the vendor published (compatibility warnings, security
+  advisories, maintenance windows, migration and deprecation notes), already
   filtered to the audience they were meant for, and already resolved to the
   user's language.
 - Opens the right place in MCNexus when the user acts on either, falling back
@@ -25,8 +25,8 @@ public by design, so nothing needs to be signed or kept secret.
 ## Before you start
 
 `tenant_id`, `artifact_id` and the `base_url` for your product are issued
-together with your ProductData blob, as part of per-project setup — see the
-[README](../README.md). They are not discoverable at runtime and there is no
+together with your ProductData blob, as part of per-project setup (see the
+[README](../README.md)). They are not discoverable at runtime and there is no
 self-service signup yet.
 
 ## One handle per process, not per instance
@@ -34,12 +34,12 @@ self-service signup yet.
 **This handle does not deduplicate itself.** Every handle you create checks on
 its own and issues its own requests. That is the opposite of the license
 handle, which shares one background refresh across every instance in the
-process — do not carry that assumption over.
+process; do not carry that assumption over.
 
 For a plugin, this matters: a project with fifty instances of your effect must
 not create fifty handles, or you will issue fifty requests for the same
-answer. Create one for the whole plug-in — a process-wide singleton created on
-first use — and let every instance read from it.
+answer. Create one for the whole plug-in (a process-wide singleton created on
+first use) and let every instance read from it.
 
 ## Lifecycle
 
@@ -58,7 +58,7 @@ config.channel         = "stable";           /* "stable", "beta" or "nightly" */
 config.locale          = "pt-BR";            /* preferred language for notices */
 config.base_url        = "https://your-endpoint";
 
-/* Optional, and how notices reach the right hosts — see Audience below. */
+/* Optional, and how notices reach the right hosts: see Audience below. */
 config.host_name    = "DaVinciResolve";
 config.host_version = "20.0.1";
 
@@ -92,13 +92,13 @@ to call from a UI thread and must never be called from a render callback.
 
 The backend tells the SDK how often to check, and `force = 0` respects that:
 calling it more often than the schedule allows simply returns without going
-anywhere. Pass `force = 1` only when the user explicitly asked — a "check for
-updates" button — because it bypasses the schedule.
+anywhere. Pass `force = 1` only when the user explicitly asked (such as a "check for
+updates" button), because it bypasses the schedule.
 
 There is no completion callback, and the SDK never writes to your UI. Read
 the result at a moment that suits your host: a timer, a window becoming
-active, or — where the host offers neither, as in an audio or video plug-in
-API — the next time the user interacts with your controls. Checking again
+active, or (where the host offers neither, as in an audio or video plug-in
+API) the next time the user interacts with your controls. Checking again
 costs nothing when the schedule says it is too soon, so calling it on every
 interaction is a reasonable pattern.
 
@@ -107,7 +107,7 @@ stays valid until the new one lands. Nothing is lost by reading at an
 inconvenient moment.
 
 The practical consequence: on a cold install, the first time a user opens
-your UI there may be no answer yet. Show nothing rather than an error — the
+your UI there may be no answer yet. Show nothing rather than an error: the
 answer will be there the next time they look.
 
 ### 3. Read the result
@@ -135,7 +135,7 @@ if (nexkeyruntime_get_active_notice(updates, &notice) == NEXKEYRUNTIME_OK &&
 `get_active_notice` returns `NEXKEYRUNTIME_NOT_AVAILABLE` when there is
 nothing to show. That is the normal case, not an error.
 
-Both reads are safe from any thread and never block on the network — they
+Both reads are safe from any thread and never block on the network: they
 report whatever the last completed check produced. Neither belongs in a
 render callback, though: for that, the license handle's `render_decision` is
 the only call designed for the hot path.
@@ -151,7 +151,7 @@ nexkeyruntime_open_notice_action(updates, notice.id); /* that notice      */
 ```
 
 Both open MCNexus at the relevant place, falling back to a web page when it
-is not installed. This is the only external action the SDK offers — it never
+is not installed. This is the only external action the SDK offers; it never
 downloads or installs anything itself.
 
 ### 5. Destroy
@@ -192,12 +192,12 @@ report that as a problem.
 
 A notice reaches a user only if it applies to them. The vendor scopes each one
 by product version range, platform, architecture, channel, and optionally by
-host application and host version. The SDK evaluates all of it locally — the
+host application and host version. The SDK evaluates all of it locally: the
 host you are running in is never sent to the backend.
 
 This is why `host_name` and `host_version` are worth setting: without them, a
 notice scoped to a specific host matches nobody. Pass exactly what your host
-reports, and do not translate or normalise it — the vendor writes the rule
+reports, and do not translate or normalise it: the vendor writes the rule
 against that same string.
 
 ### Severity and type
@@ -206,7 +206,7 @@ against that same string.
 most severe wins. It is also the field to drive visual weight.
 
 **`type` is descriptive.** `update`, `compatibility`, `security`,
-`maintenance`, `migration`, `deprecation` — it tells you and the user what a
+`maintenance`, `migration`, `deprecation`: it tells you and the user what a
 notice is about, and is there for your presentation choices, such as picking
 an icon or the wording of a button. It does not change what the SDK selects
 or when.
@@ -224,7 +224,7 @@ back. A correction is not something a previous dismissal should silence.
 
 `remind_notice_later` hides the notice for a period the vendor set on it. Both
 calls return `NEXKEYRUNTIME_NOT_AVAILABLE` if the notice does not allow that
-action — whether a notice can be dismissed or snoozed is the vendor's choice,
+action: whether a notice can be dismissed or snoozed is the vendor's choice,
 not the user's.
 
 **Both last for the lifetime of the handle.** If your product should remember
@@ -246,13 +246,13 @@ GET {base_url}/v1/tenants/{tenant_id}/manifest
 ```
 
 sending `Accept-Language` from your `locale`, and `If-None-Match` once it has
-seen a version — answer `304` and it keeps what it has. The response is the
+seen a version (answer `304` and it keeps what it has). The response is the
 document described by
 [schemas/update-manifest.schema.json](../schemas/update-manifest.schema.json).
 
 If you would rather not serve HTTP at all, set `fetch_manifest` in the config
-and return the bytes from wherever you like — a file next to your product, an
-archive inside your installer, your own client. The SDK then does no
+and return the bytes from wherever you like (a file next to your product, an
+archive inside your installer, or your own client). The SDK then does no
 networking of its own and only parses and evaluates what you hand it.
 
 **One limit to know before you plan around this.** The URLs *inside* the

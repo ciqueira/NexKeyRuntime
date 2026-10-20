@@ -1,0 +1,68 @@
+{
+  "tenantId": "mcnexus-sandbox",
+  "baseUrl": "https://sdk-sandbox.mcnexus.app",
+  "keyId": "mcnexus-sandbox-sandbox-2026-10",
+  "generatedAt": "2026-10-19T23:39:39.289Z",
+  "licenses": [
+    {
+      "role": "demo",
+      "name": "Demo (Permanent Watermark / No Expiration)",
+      "key": "2D3CD5-45AEE1-B61D54-86DB2C-7307CD-A7664D08",
+      "edition": "demo",
+      "maxActivations": 5,
+      "trialDays": null,
+      "status": "active",
+      "expectedBehavior": "Permanent overlay watermark ('DEMO MODE'). Render allowed indefinitely."
+    },
+    {
+      "role": "trial_7d",
+      "name": "Standard Trial (7 Days)",
+      "key": "7ACDD8-B11617-0BF5F2-6CECF4-AD6BD9-B2704997",
+      "edition": "trial",
+      "maxActivations": 3,
+      "trialDays": 7,
+      "status": "active",
+      "expectedBehavior": "Clean image without watermark. 7-day countdown starting upon first activation."
+    },
+    {
+      "role": "trial_2y",
+      "name": "Extended Trial (2 Years / 730 Days)",
+      "key": "BFE30C-87617B-ECD794-267E82-39A65F-A330A912",
+      "edition": "trial",
+      "maxActivations": 5,
+      "trialDays": 730,
+      "status": "active",
+      "expectedBehavior": "Clean image without watermark. Extended countdown (~730 days) for ongoing development and QA."
+    },
+    {
+      "role": "trial_expired",
+      "name": "Expired Trial",
+      "key": "A00B07-DE23BD-7F048D-94F064-C7D13D-FADF4353",
+      "edition": "trial",
+      "maxActivations": 1,
+      "trialDays": null,
+      "status": "active",
+      "expectedBehavior": "Activation rejected or render denied with license_expired."
+    },
+    {
+      "role": "full",
+      "name": "Full (Perpetual / Commercial Unlocked)",
+      "key": "B11C74-8A87F8-C8EA8A-6AE757-4A62D3-89FED38D",
+      "edition": "full",
+      "maxActivations": 5,
+      "trialDays": null,
+      "status": "active",
+      "expectedBehavior": "Fully unlocked commercial rendering with no watermarks, expiration, or restrictions."
+    },
+    {
+      "role": "suspended",
+      "name": "Suspended / Revoked (Immediate Denial)",
+      "key": "AF65F0-A84D1C-51F3B6-2E3139-4C5931-534E28FA",
+      "edition": "full",
+      "maxActivations": 1,
+      "trialDays": null,
+      "status": "suspended",
+      "expectedBehavior": "Immediate render denial (license_suspended / DENY)."
+    }
+  ]
+}

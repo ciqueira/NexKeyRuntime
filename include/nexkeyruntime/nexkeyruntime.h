@@ -51,7 +51,7 @@ typedef enum NexKeyRuntimeResult {
   NEXKEYRUNTIME_BUFFER_TOO_SMALL = 9,
   NEXKEYRUNTIME_INTERNAL_ERROR = 10,
 
-  /* Licensing (§7.7, Fase 4A) — appended starting at 20, never renumbering
+  /* Licensing (§7.7, Fase 4A): appended starting at 20, never renumbering
      0-10 above: those shipped with the update handle in Fase 1. Where a
      meaning already exists here (invalid argument, internal error, network
      error, ...) licensing reuses it instead of declaring a second name for
@@ -62,7 +62,7 @@ typedef enum NexKeyRuntimeResult {
   NEXKEYRUNTIME_E_PRODUCT_DATA_EXPIRED = 21,
   NEXKEYRUNTIME_E_ABI_MISMATCH = 22,        /* product data formatVersion this build does not understand */
 
-  /* license — from the server; returned by Bloco B/C, not yet implemented (Fase 4B) */
+  /* license (from the server; returned by Bloco B/C, not yet implemented (Fase 4B)) */
   NEXKEYRUNTIME_E_LICENSE_KEY = 30,
   NEXKEYRUNTIME_E_ACTIVATION_LIMIT = 31,
   NEXKEYRUNTIME_E_LICENSE_EXPIRED = 32,
@@ -72,7 +72,7 @@ typedef enum NexKeyRuntimeResult {
   NEXKEYRUNTIME_E_WRONG_TENANT = 36,
   NEXKEYRUNTIME_E_ACTIVATION_NOT_FOUND = 37,
 
-  /* local proof — from load_local() */
+  /* local proof: from load_local() */
   NEXKEYRUNTIME_E_NO_RECEIPT = 40,
   NEXKEYRUNTIME_E_SIGNATURE = 41,
   NEXKEYRUNTIME_E_DEVICE_MISMATCH = 42,
@@ -238,7 +238,7 @@ NEXKEYRUNTIME_API NexKeyRuntimeResult nexkeyruntime_open_notice_action(
 );
 
 /* =================================================================
-   LICENSING (opt-in, §7.7) — a second, independent handle. An app
+   LICENSING (opt-in, §7.7): a second, independent handle. An app
    can use the update handle above, this one, or both; neither knows
    about the other.
 
@@ -259,8 +259,8 @@ typedef enum NexKeyRuntimeRenderDecision {
 /* Mirrors nexkeyruntime::licensing::LicenseStatus (LicenseStatus.h)
    field-for-field; ActivationCertificateVerifier/LicenseStateMachine
    are the only place these are DECIDED, this enum only reports one.
-   Local verification (load_local) only ever produces a subset of these —
-   see LicenseStatus.h for exactly which. */
+   Local verification (load_local) only ever produces a subset of these (
+   see LicenseStatus.h for exactly which). */
 typedef enum NexKeyRuntimeLicenseStatus {
   NEXKEYRUNTIME_LICENSE_UNKNOWN = 0,
   NEXKEYRUNTIME_LICENSE_NOT_ACTIVATED,
@@ -328,7 +328,7 @@ NEXKEYRUNTIME_API NexKeyRuntimeResult nexkeyruntime_license_set_product_file(
   NexKeyRuntimeLicenseHandle *handle,
   const char *path
 );
-/* Mandatory (§3.7.1.1.1) — not inside product_data. Must be called before
+/* Mandatory (§3.7.1.1.1): not inside product_data. Must be called before
    load_local(); load_local() fails NEXKEYRUNTIME_INVALID_CONFIG without it. */
 NEXKEYRUNTIME_API NexKeyRuntimeResult nexkeyruntime_license_set_tenant_id(
   NexKeyRuntimeLicenseHandle *handle,
@@ -341,16 +341,16 @@ NEXKEYRUNTIME_API NexKeyRuntimeResult nexkeyruntime_license_set_scope(
   NexKeyRuntimeLicenseHandle *handle,
   NexKeyRuntimeScope scope
 );
-/* Optional — a tenant with exactly one variant never needs this; the
+/* Optional: a tenant with exactly one variant never needs this; the
    entitlement checked defaults to "download:default" if unset. */
 NEXKEYRUNTIME_API NexKeyRuntimeResult nexkeyruntime_license_set_variant(
   NexKeyRuntimeLicenseHandle *handle,
   const char *variant
 );
 
-/* ===== BLOCO A — VERIFY: the four (after create/destroy) every OFX
+/* ===== BLOCO A: VERIFY: the four (after create/destroy) every OFX
    uses. A plugin that never calls anything below this point is,
-   by construction, Profile A/read-only — see §7.7. ===== */
+   by construction, Profile A/read-only; see §7.7. ===== */
 NEXKEYRUNTIME_API NexKeyRuntimeResult nexkeyruntime_license_load_local(
   NexKeyRuntimeLicenseHandle *handle
 );
@@ -364,7 +364,7 @@ NEXKEYRUNTIME_API NexKeyRuntimeRenderDecision nexkeyruntime_license_render_decis
   const NexKeyRuntimeLicenseHandle *handle
 );
 
-/* ===== BLOCO B — ACTIVATE: MCNexus (Profile A) or the app itself
+/* ===== BLOCO B: ACTIVATE: MCNexus (Profile A) or the app itself
    (Profile B). A plugin that only validates never calls these (D15). ===== */
 NEXKEYRUNTIME_API NexKeyRuntimeResult nexkeyruntime_license_set_license_key(
   NexKeyRuntimeLicenseHandle *handle,
@@ -388,12 +388,12 @@ NEXKEYRUNTIME_API NexKeyRuntimeResult nexkeyruntime_license_publish_receipt(
 
 /* Writes a small JSON request file that lets someone else issue this
    machine an activation certificate without this machine ever reaching the
-   network — the usual reason is that the normal activation channel is
+   network; the usual reason is that the normal activation channel is
    unreachable (backend down, install intentionally air-gapped). The file
    carries this machine's binding (derived from the tenant id and the
    hardware id, never the hardware id itself), the entitlement and a short
    prefix of the license key already configured on this handle, and nothing
-   else — it is not a secret and is not signed by this machine, which holds
+   else; it is not a secret and is not signed by this machine, which holds
    no key to sign with.
 
    Requires set_product_data/set_product_file and set_tenant_id to have
@@ -403,7 +403,7 @@ NEXKEYRUNTIME_API NexKeyRuntimeResult nexkeyruntime_license_publish_receipt(
    cannot be read (the same condition load_local() reports the same way),
    or NEXKEYRUNTIME_E_STORAGE if `path` cannot be written.
 
-   Whatever comes back in response to this file is a certificate — hand it
+   Whatever comes back in response to this file is a certificate: hand it
    to publish_receipt(), not to this function. */
 NEXKEYRUNTIME_API NexKeyRuntimeResult nexkeyruntime_license_export_activation_request(
   NexKeyRuntimeLicenseHandle *handle,
@@ -415,7 +415,7 @@ NEXKEYRUNTIME_API NexKeyRuntimeResult nexkeyruntime_license_export_activation_re
 
    Order matters and is not configurable: the local receipts are deleted
    FIRST, and only then is the proof written. That is what makes the proof
-   trustworthy without a signature — this machine holds no key to sign with,
+   trustworthy without a signature: this machine holds no key to sign with,
    and forging the file gains the forger nothing, because their own copy has
    already stopped working. Whoever receives the file releases the seat on
    the strength of that.
@@ -427,14 +427,14 @@ NEXKEYRUNTIME_API NexKeyRuntimeResult nexkeyruntime_license_export_activation_re
    a failure to stop rendering is not.
 
    Same preconditions as export_activation_request(). Returns
-   NEXKEYRUNTIME_E_NO_RECEIPT when there was nothing to give up — the machine
+   NEXKEYRUNTIME_E_NO_RECEIPT when there was nothing to give up: the machine
    was not activated, so there is no seat to release and no proof to write. */
 NEXKEYRUNTIME_API NexKeyRuntimeResult nexkeyruntime_license_export_deactivation_proof(
   NexKeyRuntimeLicenseHandle *handle,
   const char *path
 );
 
-/* ===== BLOCO C — SYNC: automatic once Fase 4B's poller runs; forcing
+/* ===== BLOCO C: SYNC: automatic once Fase 4B's poller runs; forcing
    is optional. ===== */
 
 /* Invoked on the POLLER thread, never on the render thread, every time a
@@ -443,7 +443,7 @@ NEXKEYRUNTIME_API NexKeyRuntimeResult nexkeyruntime_license_export_deactivation_
    revocation only by polling the SDK, which is the loop the SDK already runs
    on their behalf (D36).
 
-   The callback must not block and must not call back into this handle — it is
+   The callback must not block and must not call back into this handle; it is
    a notification, not a place to do work. Read the snapshot afterwards from
    your own thread. */
 typedef void (*NexKeyRuntimeLicenseCallback)(
@@ -460,7 +460,7 @@ NEXKEYRUNTIME_API NexKeyRuntimeResult nexkeyruntime_license_request_sync(
   NexKeyRuntimeLicenseHandle *handle,
   int force
 );
-/* Optional; overrides autodetection in either direction (§7.9.5, D7) — the
+/* Optional; overrides autodetection in either direction (§7.9.5, D7): the
    default matters because assuming GUI would let an unattended render farm
    hammer the backend, and assuming headless would mean a normal desktop user
    never syncs. Autodetection errs toward interactive when it cannot tell. */
