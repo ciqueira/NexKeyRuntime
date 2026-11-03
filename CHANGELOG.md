@@ -3,6 +3,13 @@
 All notable changes to the NexKeyRuntime public repository will be
 documented in this file.
 
+## [1.2.1] - 2026-11-03
+
+### Fixed
+
+- **Multi-Entitlement Credential Isolation**: Fixed an issue where multiple products or entitlements sharing the same tenant directory could overwrite each other's cached license keys. Credentials are now stored in isolated per-entitlement stores.
+- **Symmetric Product Deactivation**: Deactivating an individual license handle now targets only that specific entitlement's store, preventing unintended revocation or clearing of sibling licenses.
+
 ## [1.2.0] - 2026-10-01
 
 ### Changed
