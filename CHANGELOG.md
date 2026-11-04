@@ -3,6 +3,22 @@
 All notable changes to the NexKeyRuntime public repository will be
 documented in this file.
 
+## [1.3.0] - 2026-11-04
+
+### Added
+
+- **DCTL-to-OFX Sandbox Testbed (`sandbox/dctl-to-ofx/`)**:
+  - Evaluation environment allowing colorists and developers to package DCTL color algorithms and 3D LUTs into native OpenFX plugins for DaVinci Resolve Studio.
+  - Zero C++ compiler requirements for creators: shaders are packaged and run via the precompiled universal OpenFX runners.
+  - Minimal reference DCTL script (`Exposure.dctl`) demonstrating interactive UI sliders.
+- **Precompiled Universal OpenFX Binary Runners**:
+  - Neutral, immutable binary modules (`NexDCTLRunner.ofx`) bundled in `sandbox/dctl-to-ofx/runners/` for macOS (Universal arm64/x86_64 via Metal) and Windows (x64 via OpenCL).
+  - Shaders are compiled and cached directly on the host GPU at runtime with zero playback stalls.
+- **CLI Packaging & Sandbox Control (`nexkeyctl`)**:
+  - `nexkeyctl package-dctl`: Automates preprocessing of standard DaVinci Resolve DCTL macros (`DEFINE_UI_PARAMS`, `DEFINE_LUT`, `#include`) into an OpenFX bundle.
+  - `--sandbox` flag: Prepares bundles for immediate local testing locked to tenant `mcnexus-sandbox`.
+  - `--debug` flag: Captures GPU shader compilation and lifecycle diagnostics to a local log file with zero impact on real-time playback.
+
 ## [1.2.1] - 2026-11-03
 
 ### Fixed

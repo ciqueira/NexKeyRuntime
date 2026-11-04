@@ -26,9 +26,9 @@ extern "C" {
    equals NEXKEYRUNTIME_VERSION_STRING), and this header ships as SOURCE in the
    public repository rather than as a build artifact. */
 #define NEXKEYRUNTIME_VERSION_MAJOR 1
-#define NEXKEYRUNTIME_VERSION_MINOR 2
-#define NEXKEYRUNTIME_VERSION_PATCH 1
-#define NEXKEYRUNTIME_VERSION_STRING "1.2.1"
+#define NEXKEYRUNTIME_VERSION_MINOR 3
+#define NEXKEYRUNTIME_VERSION_PATCH 0
+#define NEXKEYRUNTIME_VERSION_STRING "1.3.0"
 
 #define NEXKEYRUNTIME_VERSION_CAPACITY 64
 #define NEXKEYRUNTIME_ID_CAPACITY 160
@@ -80,7 +80,17 @@ typedef enum NexKeyRuntimeResult {
   NEXKEYRUNTIME_E_CLOCK = 44,
 
   /* environment */
-  NEXKEYRUNTIME_E_STORAGE = 50              /* tenant directory unreadable/uncreatable */
+  NEXKEYRUNTIME_E_STORAGE = 50,             /* tenant directory unreadable/uncreatable */
+
+  /* asset vault (Pilar 3, Bloco 60) */
+  NEXKEYRUNTIME_E_ASSET_INVALID = 60,
+  NEXKEYRUNTIME_E_ASSET_SIGNATURE = 61,
+  NEXKEYRUNTIME_E_ASSET_CORRUPT = 62,
+  NEXKEYRUNTIME_E_ASSET_DECRYPT_FAILED = 63,
+  NEXKEYRUNTIME_E_ASSET_UNSUPPORTED_VERSION = 64,
+  NEXKEYRUNTIME_E_ASSET_BACKEND_NOT_FOUND = 65,
+  NEXKEYRUNTIME_E_ASSET_TOO_LARGE = 66,
+  NEXKEYRUNTIME_E_ASSET_KEY_NOT_FOUND = 67
 } NexKeyRuntimeResult;
 
 typedef enum NexKeyRuntimeUpdateStatus {
@@ -467,6 +477,69 @@ NEXKEYRUNTIME_API NexKeyRuntimeResult nexkeyruntime_license_request_sync(
 NEXKEYRUNTIME_API NexKeyRuntimeResult nexkeyruntime_license_set_headless(
   NexKeyRuntimeLicenseHandle *handle,
   int headless
+);
+
+/* ===== SHADER VAULT & DCTL RUNNER API (v1.3.0) ===== */
+
+typedef enum NexKeyRuntimeBackendId {
+  NEXKEYRUNTIME_BACKEND_METAL_SRC  = 2,
+  NEXKEYRUNTIME_BACKEND_METAL_BIN  = 3,
+  NEXKEYRUNTIME_BACKEND_OPENCL_SRC = 4,
+  NEXKEYRUNTIME_BACKEND_LUT_F32    = 10
+} NexKeyRuntimeBackendId;
+
+typedef struct NexKeyRuntimeAsset NexKeyRuntimeAsset;
+
+/* Recupera a CEK de 32 bytes envelopada no recibo assinado da máquina */
+NEXKEYRUNTIME_API NexKeyRuntimeResult nexkeyruntime_license_get_content_key(
+  const NexKeyRuntimeLicenseHandle *handle,
+  const char *product_id,
+  uint8_t out_cek[32]
+);
+
+/* Abertura e inspeção de metadados do asset */
+NEXKEYRUNTIME_API NexKeyRuntimeResult nexkeyruntime_asset_open(
+  const char *path_utf8, 
+  NexKeyRuntimeAsset **out_asset
+);
+
+NEXKEYRUNTIME_API NexKeyRuntimeResult nexkeyruntime_asset_get_manifest(
+  const NexKeyRuntimeAsset *asset, 
+  char *buffer, 
+  size_t capacity, 
+  size_t *bytes_needed
+);
+
+NEXKEYRUNTIME_API NexKeyRuntimeResult nexkeyruntime_asset_get_product_data(
+  const NexKeyRuntimeAsset *asset, 
+  char *buffer, 
+  size_t capacity, 
+  size_t *bytes_needed
+);
+
+/* Decifragem autenticada na RAM usando a CEK obtida da licença */
+NEXKEYRUNTIME_API NexKeyRuntimeResult nexkeyruntime_asset_decrypt(
+  const uint8_t cek[32],
+  NexKeyRuntimeAsset *asset,
+  uint8_t backend_id,
+  const uint8_t **out_plaintext,
+  size_t *out_size
+);
+
+/* Limpeza mandatória de memória volátil (crypto_wipe) */
+NEXKEYRUNTIME_API void nexkeyruntime_asset_release_plaintext(
+  NexKeyRuntimeAsset *asset
+);
+
+/* Fechamento do handle de asset */
+NEXKEYRUNTIME_API void nexkeyruntime_asset_close(
+  NexKeyRuntimeAsset *asset
+);
+
+/* Utilitário para teste de sanitização em RAM sem Use-After-Free */
+NEXKEYRUNTIME_API void nexkeyruntime_asset_test_wipe(
+  uint8_t *buffer,
+  size_t size
 );
 
 #ifdef __cplusplus

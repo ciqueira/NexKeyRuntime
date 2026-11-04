@@ -15,8 +15,9 @@ It exposes two independent handles:
 
 ## Developer Sandbox & Quickstart
 
-This repository includes a dedicated **[Developer Sandbox](sandbox/)** with pre-provisioned test license keys, signed trust envelopes, and a ready-to-run test environment:
+This repository includes a dedicated **[Developer Sandbox](sandbox/)** with pre-provisioned test license keys, signed trust envelopes, precompiled OFX runners, and a ready-to-run test environment:
 
+- **[sandbox/dctl-to-ofx/](sandbox/dctl-to-ofx/)**: Convert DCTL color scripts and 3D LUTs into native OpenFX plugins with zero C++ code using precompiled macOS (Metal) and Windows (OpenCL) runners.
 - **[sandbox/](sandbox/)**: Dedicated Sandbox documentation, trust envelope (`mcnexus-sandbox.nexkeydat`), test keys catalog (`licenses.json`), and the **[all-in-one OFX reference plugin](sandbox/ofx-plugin/)**.
 - **[tools/nexkeyctl/](tools/nexkeyctl/)**: The official command-line utility to activate, deactivate, inspect license state, and test updates/notices from your terminal.
 - **[examples/](examples/)**: Minimal, single-purpose C examples for every SDK feature.
