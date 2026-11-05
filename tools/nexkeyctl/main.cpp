@@ -314,12 +314,12 @@ int runPackageDctl(int argc, char **argv) {
   if (bundleName) opts.bundleName = bundleName;
   if (group) opts.pluginGroup = group;
   if (productId) opts.productId = productId;
-  if (version) opts.version = version;
+  opts.version = (version && version[0] != '\0') ? version : "1.0.0";
   if (tenant) opts.tenantId = tenant;
   if (variant) opts.variant = variant;
   if (nexkeydat) opts.nexkeydatPath = nexkeydat;
   if (keys) opts.keysPath = keys;
-  if (output) opts.outputDir = output;
+  opts.outputDir = (output && output[0] != '\0') ? output : ".";
   if (runner) opts.runnerPath = runner;
   if (dumpMsl) opts.dumpMslPath = dumpMsl;
   if (dumpOpencl) opts.dumpOpenclPath = dumpOpencl;
