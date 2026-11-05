@@ -7,7 +7,7 @@
 namespace nexdctl {
 
 struct AssetKeys {
-    std::string format = "nexkeyruntime-keys-v1";
+    std::string format;
     std::string productId;
     std::string keyId;
     std::string cekHex;
@@ -19,14 +19,14 @@ struct PackageOptions {
     std::string inputPath;
     std::string pluginName;
     std::string bundleName;
-    std::string pluginGroup = "NexKey Looks";
+    std::string pluginGroup;
     std::string productId;
-    std::string version = "1.0.0";
-    std::string tenantId = "mcnexus-sandbox";
-    std::string variant = "download:default";
+    std::string version;
+    std::string tenantId;
+    std::string variant;
     std::string nexkeydatPath;
     std::string keysPath;
-    std::string outputDir = ".";
+    std::string outputDir;
     std::string runnerPath;
     std::string dumpMslPath;
     std::string dumpOpenclPath;
@@ -45,3 +45,4 @@ bool packageAsset(PackageOptions& options, std::string& errOut);
 } // namespace nexdctl
 
 #endif // NEXDCTL_DCTL_PACKAGER_H
+
