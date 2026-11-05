@@ -43,6 +43,7 @@ endif()
 
 add_executable(nexkeyctl main.cpp)
 target_include_directories(nexkeyctl PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}
   ${CMAKE_CURRENT_SOURCE_DIR}/../../include
 )
 target_link_libraries(nexkeyctl PRIVATE NexKeyRuntime::NexKeyRuntime)
@@ -58,4 +59,6 @@ if(APPLE)
     "-framework Foundation"
     "-framework Security"
   )
+elseif(WIN32)
+  target_link_libraries(nexkeyctl PRIVATE bcrypt winhttp advapi32 crypt32 user32)
 endif()

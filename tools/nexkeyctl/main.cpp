@@ -1,4 +1,4 @@
-// nexkeyctl: activate, deactivate and inspect a NexKeyRuntime license from
+// nexkeyctl — activate, deactivate and inspect a NexKeyRuntime license from
 // the command line, in a process that is NOT the OFX host.
 //
 // It exists for P11. The question that item asks is not "does licensing
@@ -7,12 +7,12 @@
 // the two agree on where that file lives? A Resolve installed from the Mac
 // App Store runs sandboxed, and a sandboxed process's
 // ~/Library/Application Support is silently redirected into the app's own
-// container, so the receipt this tool writes would simply not be there
+// container — so the receipt this tool writes would simply not be there
 // (§3.12). `--status` prints the RESOLVED path precisely so it can be
 // compared against the path the plugin reports from inside the host: two
 // different strings is the answer P11 is looking for.
 //
-// It is also, incidentally, a minimal stand-in for what MCNexus does: the
+// It is also, incidentally, a minimal stand-in for what MCNexus does — the
 // same Perfil B calls, in a separate process from the plugin.
 //
 // --updates covers the OTHER handle, for a different reason: not that a second
@@ -21,6 +21,16 @@
 // of the ABI could only ever be exercised against a unit-test fixture.
 
 #include <nexkeyruntime/nexkeyruntime.h>
+
+#if __has_include("DctlPackager.h")
+#define NEXKEYCTL_HAS_DCTL_PACKAGER 1
+#include "DctlPackager.h"
+#elif __has_include("dctl/DctlPackager.h")
+#define NEXKEYCTL_HAS_DCTL_PACKAGER 1
+#include "dctl/DctlPackager.h"
+#else
+#define NEXKEYCTL_HAS_DCTL_PACKAGER 0
+#endif
 
 #include <chrono>
 #include <cstdio>
@@ -35,14 +45,14 @@
 namespace {
 
 // Baked in so the common case needs no flag, overridable so the tool stays
-// general; it lives in MCSDK/tools and has no business being welded to one
+// general — it lives in MCSDK/tools and has no business being welded to one
 // product. Resolution order: --tenant, then $NEXKEYRUNTIME_TENANT, then this.
 //
 // Whichever wins is always PRINTED. A tool that silently defaults to a tenant
 // and does not say so can deactivate the wrong license and look like it
 // worked.
 #ifndef NEXKEYCTL_DEFAULT_TENANT
-#define NEXKEYCTL_DEFAULT_TENANT "mcnexus-sandbox"
+#define NEXKEYCTL_DEFAULT_TENANT "colorequalizer-oss"
 #endif
 
 const char *statusName(NexKeyRuntimeLicenseStatus status) {
@@ -118,7 +128,7 @@ std::string receiptsDirectory(const std::string &tenantId) {
 
 // How many receipts are actually sitting there.
 //
-// NOT "does the directory exist": that would always answer yes and prove
+// NOT "does the directory exist" — that would always answer yes and prove
 // nothing: resolveTenantPaths(, NEXKEYRUNTIME_SCOPE_USER) creates the whole chain with mkdir -p
 // semantics, so by the time any command has run the directory exists no
 // matter which path was resolved. A sandboxed host would cheerfully create
@@ -164,12 +174,188 @@ const char *argumentValue(int argc, char **argv, const char *name) {
   return nullptr;
 }
 
+const char *getArgValue(int argc, char **argv, const char *name) {
+  const std::size_t length = std::strlen(name);
+  for (int i = 1; i < argc; ++i) {
+    if (std::strncmp(argv[i], name, length) == 0) {
+      if (argv[i][length] == '=') {
+        return argv[i] + length + 1;
+      }
+      if (argv[i][length] == '\0' && i + 1 < argc) {
+        return argv[i + 1];
+      }
+    }
+  }
+  return nullptr;
+}
+
+std::vector<std::string> getMultiArgValues(int argc, char **argv, const char *name) {
+  std::vector<std::string> result;
+  const std::size_t length = std::strlen(name);
+  for (int i = 1; i < argc; ++i) {
+    if (std::strncmp(argv[i], name, length) == 0) {
+      if (argv[i][length] == '=') {
+        result.push_back(argv[i] + length + 1);
+      } else if (argv[i][length] == '\0' && i + 1 < argc) {
+        result.push_back(argv[++i]);
+      }
+    }
+  }
+  return result;
+}
+
 bool hasFlag(int argc, char **argv, const char *name) {
   for (int i = 1; i < argc; ++i) {
     if (std::strcmp(argv[i], name) == 0) return true;
   }
   return false;
 }
+
+#if NEXKEYCTL_HAS_DCTL_PACKAGER
+int runGenerateAssetKeys(int argc, char **argv) {
+  const char *productId = getArgValue(argc, argv, "--product-id");
+  const char *output = getArgValue(argc, argv, "--output");
+  if (!output) output = ".";
+
+  if (!productId || productId[0] == '\0') {
+    std::fprintf(stderr, "Error: --product-id <id> is required for generate-asset-keys\n");
+    return 2;
+  }
+
+  std::string err;
+  if (!nexdctl::generateAssetKeys(productId, output, err)) {
+    std::fprintf(stderr, "Error: %s\n", err.c_str());
+    return 1;
+  }
+
+  std::printf("[OK] Generated asset keys for %s in %s\n", productId, output);
+  return 0;
+}
+
+int runPackageDctl(int argc, char **argv) {
+  nexdctl::PackageOptions opts;
+  const char *input = getArgValue(argc, argv, "--input");
+  const char *name = getArgValue(argc, argv, "--name");
+  const char *bundleName = getArgValue(argc, argv, "--bundle-name");
+  const char *group = getArgValue(argc, argv, "--group");
+  const char *productId = getArgValue(argc, argv, "--product-id");
+  const char *version = getArgValue(argc, argv, "--version");
+  const char *tenant = getArgValue(argc, argv, "--tenant");
+  const char *variant = getArgValue(argc, argv, "--variant");
+  const char *nexkeydat = getArgValue(argc, argv, "--nexkeydat");
+  const char *keys = getArgValue(argc, argv, "--keys");
+  const char *output = getArgValue(argc, argv, "--output");
+  const char *runner = getArgValue(argc, argv, "--runner");
+  const char *dumpMsl = getArgValue(argc, argv, "--dump-msl");
+  const char *dumpOpencl = getArgValue(argc, argv, "--dump-opencl");
+  bool sandbox = hasFlag(argc, argv, "--sandbox");
+  bool debug = hasFlag(argc, argv, "--debug");
+  bool allowUncompiledMetal = hasFlag(argc, argv, "--allow-uncompiled-metal-source");
+
+  if (!input || input[0] == '\0') {
+    std::fprintf(stderr, "Error: --input <file.dctl> is required for package-dctl\n");
+    return 2;
+  }
+
+  if (sandbox) {
+    if (productId && productId[0] != '\0') {
+      std::fprintf(stderr, "Error: --product-id cannot be used with --sandbox (product ID is strictly derived as com.mcnexus.sandbox.<name>)\n");
+      return 2;
+    }
+    if (keys && keys[0] != '\0') {
+      std::fprintf(stderr, "Error: --keys cannot be used with --sandbox (sandbox uses immutable built-in test keys)\n");
+      return 2;
+    }
+    if (nexkeydat && nexkeydat[0] != '\0') {
+      std::fprintf(stderr, "Error: --nexkeydat cannot be used with --sandbox (sandbox uses immutable built-in test envelope)\n");
+      return 2;
+    }
+    if (tenant && tenant[0] != '\0') {
+      std::fprintf(stderr, "Error: --tenant cannot be used with --sandbox (sandbox tenant is strictly locked to 'mcnexus-sandbox')\n");
+      return 2;
+    }
+    if (variant && variant[0] != '\0') {
+      std::fprintf(stderr, "Error: --variant cannot be used with --sandbox (sandbox variant is strictly locked to 'download:default')\n");
+      return 2;
+    }
+  } else {
+    if (!productId || productId[0] == '\0') {
+      std::fprintf(stderr, "Error: --product-id <id> is required in production mode (or use --sandbox)\n");
+      return 2;
+    }
+    if (!keys || keys[0] == '\0') {
+      std::fprintf(stderr, "Error: --keys <file.keys> is required in production mode (or use --sandbox)\n");
+      return 2;
+    }
+    if (!runner || runner[0] == '\0') {
+      std::fprintf(stderr, "Error: --runner <path> is required in production mode (or use --sandbox)\n");
+      return 2;
+    }
+    if (!nexkeydat || nexkeydat[0] == '\0') {
+      std::fprintf(stderr, "Error: --nexkeydat <file.nexkeydat> is required in production mode (or use --sandbox)\n");
+      return 2;
+    }
+    if (!tenant || tenant[0] == '\0') {
+      std::fprintf(stderr, "Error: --tenant <id> is required in production mode (or use --sandbox)\n");
+      return 2;
+    }
+    if (!variant || variant[0] == '\0') {
+      std::fprintf(stderr, "Error: --variant <slug> is required in production mode (or use --sandbox)\n");
+      return 2;
+    }
+    if (debug) {
+      std::fprintf(stderr, "Error: --debug is strictly forbidden in production mode (can only be used with --sandbox)\n");
+      return 2;
+    }
+  }
+
+  opts.inputPath = input;
+  if (name) opts.pluginName = name;
+  if (bundleName) opts.bundleName = bundleName;
+  if (group) opts.pluginGroup = group;
+  if (productId) opts.productId = productId;
+  if (version) opts.version = version;
+  if (tenant) opts.tenantId = tenant;
+  if (variant) opts.variant = variant;
+  if (nexkeydat) opts.nexkeydatPath = nexkeydat;
+  if (keys) opts.keysPath = keys;
+  if (output) opts.outputDir = output;
+  if (runner) opts.runnerPath = runner;
+  if (dumpMsl) opts.dumpMslPath = dumpMsl;
+  if (dumpOpencl) opts.dumpOpenclPath = dumpOpencl;
+  opts.sandbox = sandbox;
+  opts.debug = debug;
+  opts.allowUncompiledMetalSource = allowUncompiledMetal;
+  opts.includeDirs = getMultiArgValues(argc, argv, "-I");
+
+  std::string err;
+  if (!nexdctl::packageAsset(opts, err)) {
+    std::fprintf(stderr, "Error packaging DCTL: %s\n", err.c_str());
+    return 1;
+  }
+
+  std::printf("[PACKAGED] %s\n", opts.outputDir.c_str());
+  std::printf("  Product ID: %s\n", opts.productId.c_str());
+  if (!opts.pluginName.empty()) {
+    std::printf("  Name:       %s\n", opts.pluginName.c_str());
+  }
+  return 0;
+}
+#else
+int runGenerateAssetKeys(int /*argc*/, char **/*argv*/) {
+  std::fprintf(stderr,
+    "Error: generate-asset-keys requires the official precompiled nexkeyctl binary.\n"
+    "Please download it from https://github.com/ciqueira/NexKeyRuntime/releases\n");
+  return 1;
+}
+
+int runPackageDctl(int /*argc*/, char **/*argv*/) {
+  std::fprintf(stderr,
+    "Error: package-dctl requires the official precompiled nexkeyctl binary.\n"
+    "Please download it from https://github.com/ciqueira/NexKeyRuntime/releases\n");
+  return 1;
+}
+#endif
 
 const char *updateStatusName(NexKeyRuntimeUpdateStatus status) {
   switch (status) {
@@ -204,8 +390,8 @@ const char *noticeSeverityName(NexKeyRuntimeNoticeSeverity severity) {
   return "?";
 }
 
-// The update handle has no defaults for these two; copyConfig() rejects a
-// config that omits either, so the tool supplies the machine it is running
+// The update handle has no defaults for these two — copyConfig() rejects a
+// config that omits either — so the tool supplies the machine it is running
 // on and lets --platform/--architecture override. Overriding is a real use:
 // asking what a Windows client would be offered, from a Mac, is exactly the
 // kind of question this tool exists to answer.
@@ -227,7 +413,7 @@ const char *defaultArchitecture() {
 #endif
 }
 
-// Updates and notices, in a process that is not the OFX host: the same
+// Updates and notices, in a process that is not the OFX host — the same
 // reason the licensing commands above exist, for the other handle.
 //
 // It is what makes I2/I3 of E2E_VALIDATION.md runnable at all: nothing else
@@ -237,7 +423,7 @@ const char *defaultArchitecture() {
 // gateway response.
 //
 // No ProductData here, deliberately: the update handle does not take one.
-// Manifests are public and unsigned by design (SPEC_UPDATES_NOTICES.md);
+// Manifests are public and unsigned by design (SPEC_UPDATES_NOTICES.md) —
 // they say "0.1.2 exists", which is not a claim that needs a signature. The
 // certificate keyring belongs to the licensing handle, and keeping the two
 // apart is what lets a plugin ship updates without licensing, or the
@@ -285,7 +471,7 @@ int runUpdates(int argc, char **argv, const char *tenant,
   // config with a null pointer and no reason. For a diagnostic that is the
   // worst possible pairing: the operator sees "could not create" and cannot
   // tell which field was refused. Showing the resolved values first makes the
-  // culprit obvious: an empty platform on Linux, a --current-version that is
+  // culprit obvious — an empty platform on Linux, a --current-version that is
   // not a version, a --base-url that is not https.
   std::printf("tenant          : %s  (%s)\n", tenant, tenantSource);
   std::printf("artifact        : %s\n", config.artifact_id);
@@ -302,7 +488,7 @@ int runUpdates(int argc, char **argv, const char *tenant,
   NexKeyRuntimeHandle *handle = nexkeyruntime_create(&config);
   if (!handle) {
     std::fprintf(stderr,
-                 "nexkeyctl: could not create an update handle: one of the "
+                 "nexkeyctl: could not create an update handle — one of the "
                  "values above was rejected\n");
     return 1;
   }
@@ -386,7 +572,7 @@ int runUpdates(int argc, char **argv, const char *tenant,
     // Both act on THIS handle and nothing else: dismissals and snoozes live
     // in the handle's memory and are never written to disk, so they die with
     // the process. That makes them untestable across runs and perfectly
-    // testable within one: show the notice, dismiss it, watch the evaluator
+    // testable within one — show the notice, dismiss it, watch the evaluator
     // drop it. Anything more would need the integrator to persist the state,
     // which is where that responsibility sits today.
     const bool dismiss = hasFlag(argc, argv, "--dismiss");
@@ -405,12 +591,12 @@ int runUpdates(int argc, char **argv, const char *tenant,
       std::printf("notice now      : %s\n",
                   (again == NEXKEYRUNTIME_OK && after.available) ? after.id
                                                                  : "(none)");
-      std::printf("                  (in-memory only; gone on the next run)\n");
+      std::printf("                  (in-memory only — gone on the next run)\n");
     }
   } else if (noticeResult == NEXKEYRUNTIME_NOT_AVAILABLE) {
     // Not a failure. The fixture notice carries a narrow audience on
     // purpose, so being filtered out is the expected answer for most
-    // invocations: see E2E_VALIDATION.md, I3.
+    // invocations — see E2E_VALIDATION.md, I3.
     std::printf("notice          : none for this audience\n");
   } else {
     std::printf("notice          : %s\n", resultName(noticeResult));
@@ -425,7 +611,13 @@ int runUpdates(int argc, char **argv, const char *tenant,
 
 void usage() {
   std::printf(
-      "nexkeyctl %s: NexKeyRuntime license and update control\n\n"
+      "nexkeyctl %s — NexKeyRuntime license, update and DCTL asset control\n\n"
+      "  nexkeyctl generate-asset-keys --product-id=ID [--output=DIR]\n"
+      "  nexkeyctl package-dctl        --input=FILE.dctl [--sandbox] [--debug]\n"
+      "                                [Production mode requires: --product-id=ID --keys=KEYS_FILE\n"
+      "                                 --runner=RUNNER_PATH --nexkeydat=DAT_FILE --tenant=ID --variant=SLUG]\n"
+      "                                [--name=NAME] [--bundle-name=NAME] [--group=GROUP] [--version=X.Y.Z]\n"
+      "                                [--output=DIR] [-I DIR] [--dump-msl=FILE] [--dump-opencl=FILE]\n\n"
       "  nexkeyctl --activate       --key=KEY [--tenant=ID] [--product-file=PATH] [--variant=SLUG]\n"
       "  nexkeyctl --deactivate     [--tenant=ID] [--product-file=PATH]\n"
       "  nexkeyctl --status         [--tenant=ID] [--product-file=PATH]\n"
@@ -449,21 +641,21 @@ void usage() {
       "--export-request writes a JSON file identifying this machine (tenant,\n"
       "machineBinding, entitlement, a prefix of --key if given) so someone else\n"
       "can issue an activation certificate for it without this machine reaching\n"
-      "the network. --import takes what comes back (the certificate, a plain\n"
+      "the network. --import takes what comes back (the certificate — a plain\n"
       "signed JSON envelope, not tied to any particular filename) via --response\n"
       "and loads it exactly as a normal sync would; the certificate is verified\n"
       "against the ProductData keyring like any other, on this call and on every\n"
-      "load after it; this tool does not weaken that check.\n\n"
+      "load after it — this tool does not weaken that check.\n\n"
       "--export-deactivation gives up the licence on THIS machine and writes the\n"
       "proof of it. The local receipts are deleted first, so the machine stops\n"
-      "rendering before the proof exists; that is what makes the file worth\n"
+      "rendering before the proof exists — that is what makes the file worth\n"
       "acting on without a signature. Send it to whoever administers the licence;\n"
       "they release the seat. Reactivating means a fresh --export-request.\n\n"
       "--updates is the OTHER handle, and shares nothing with the ones above: no\n"
       "ProductData, no receipt, no licence. It asks the gateway what release and\n"
       "what notices apply to the target you describe, and prints the answer. The\n"
       "target is described, not detected, so you can ask what a Windows client on\n"
-      "an older version would be told without owning one, which is the only way\n"
+      "an older version would be told without owning one — which is the only way\n"
       "to test an audience rule that excludes the machine you are sitting at.\n"
       "--dismiss and --remind-later act on the notice just printed, then print\n"
       "what is left; both are in-memory and do not survive the process.\n",
@@ -476,6 +668,14 @@ int main(int argc, char **argv) {
   if (argc < 2 || hasFlag(argc, argv, "--help") || hasFlag(argc, argv, "-h")) {
     usage();
     return argc < 2 ? 2 : 0;
+  }
+
+  const std::string firstArg = argv[1];
+  if (firstArg == "generate-asset-keys" || firstArg == "--generate-asset-keys") {
+    return runGenerateAssetKeys(argc, argv);
+  }
+  if (firstArg == "package-dctl" || firstArg == "--package-dctl") {
+    return runPackageDctl(argc, argv);
   }
 
   const bool activate = hasFlag(argc, argv, "--activate");
@@ -507,7 +707,7 @@ int main(int argc, char **argv) {
 
   // Before --product-file is demanded: the update handle takes none, and
   // requiring one here would make the command impossible to run for a plugin
-  // that ships updates without licensing, a combination the ABI explicitly
+  // that ships updates without licensing — a combination the ABI explicitly
   // supports.
   if (updates) {
     return runUpdates(argc, argv, tenant, tenantSource);
@@ -515,33 +715,14 @@ int main(int argc, char **argv) {
 
   const char *productFile = argumentValue(argc, argv, "--product-file");
   if (!productFile) productFile = std::getenv("NEXKEYRUNTIME_PRODUCT_FILE");
-  std::string resolvedProductPath;
-  if (productFile && productFile[0] != '\0') {
-    resolvedProductPath = productFile;
-  } else {
-    std::error_code ec;
-    const char *candidates[] = {
-      "sandbox/mcnexus-sandbox.nexkeydat",
-      "../sandbox/mcnexus-sandbox.nexkeydat",
-      "../../sandbox/mcnexus-sandbox.nexkeydat",
-      "../../../sandbox/mcnexus-sandbox.nexkeydat",
-      "MCSDK/NexKeyRuntime/sandbox/mcnexus-sandbox.nexkeydat"
-    };
-    for (const char *cand : candidates) {
-      if (std::filesystem::exists(cand, ec) && !ec) {
-        resolvedProductPath = cand;
-        break;
-      }
-    }
-  }
-  if (resolvedProductPath.empty()) {
+  if (!productFile || productFile[0] == '\0') {
     std::fprintf(stderr,
                  "nexkeyctl: --product-file (or $NEXKEYRUNTIME_PRODUCT_FILE) is required\n");
     return 2;
   }
-  const std::string productData = readFileText(resolvedProductPath);
+  const std::string productData = readFileText(productFile);
   if (productData.empty()) {
-    std::fprintf(stderr, "nexkeyctl: could not read ProductData from %s\n", resolvedProductPath.c_str());
+    std::fprintf(stderr, "nexkeyctl: could not read ProductData from %s\n", productFile);
     return 2;
   }
 
@@ -565,7 +746,7 @@ int main(int argc, char **argv) {
   nexkeyruntime_license_set_metadata(handle, "appVersion", "v1.0.5");
   // Identify ourselves for the same reason an integrator should: an activation
   // is shared by every program on the machine holding that entitlement, and
-  // one that declares nothing is recorded as "unknown", indistinguishable
+  // one that declares nothing is recorded as "unknown" — indistinguishable
   // from any other silent client. This tool asked ColorEqualizer to do it, so
   // it does it too.
   nexkeyruntime_license_set_metadata(handle, "product", "nexkeyctl");
@@ -589,6 +770,10 @@ int main(int argc, char **argv) {
   } else if (deactivate) {
     result = nexkeyruntime_license_deactivate(handle);
   } else if (sync) {
+    const char *key = argumentValue(argc, argv, "--key");
+    if (key && key[0] != '\0') {
+      nexkeyruntime_license_set_license_key(handle, key);
+    }
     nexkeyruntime_license_load_local(handle);
     result = nexkeyruntime_license_request_sync(handle, 1);
   } else if (exportRequest) {
@@ -638,7 +823,7 @@ int main(int argc, char **argv) {
     }
     // publish_receipt() verifies this against the ProductData keyring the
     // same way load_local() verifies anything else (§ its own doc comment
-    // in nexkeyruntime.h); an invalid or wrong-machine response is
+    // in nexkeyruntime.h) — an invalid or wrong-machine response is
     // rejected here, not silently accepted because it arrived via --import.
     result = nexkeyruntime_license_publish_receipt(handle, response.c_str());
   } else {
