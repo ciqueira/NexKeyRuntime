@@ -32,19 +32,7 @@ cmake --build tools/nexkeyctl/build --config Release
 
 ---
 
-## 2. Using Precompiled Binaries
-
-Precompiled binaries for macOS (Universal `arm64` + `x86_64`) and Windows (`x64`, `arm64`, `x86`) are included in every release archive under `bin/`.
-
-> [!NOTE]
-> **macOS Gatekeeper**: If downloaded through a web browser (Safari/Chrome), macOS attaches a quarantine attribute to downloaded archives. Run the following command once to clear the quarantine flag before executing:
-> ```bash
-> xattr -dr com.apple.quarantine bin/nexkeyctl
-> ```
-
----
-
-## 3. DCTL-to-OFX Conversion Commands
+## 2. DCTL-to-OFX Conversion Commands
 
 ### Sandbox / Evaluation Mode (Free, Instant)
 Convert any standard DaVinci Resolve DCTL script into a loaded OFX bundle for testing:
@@ -76,7 +64,7 @@ Pack encrypted, tamper-proof payloads bound to your product credentials:
 
 ---
 
-## 4. License Management Commands
+## 3. License Management Commands
 
 ```bash
 # 1. Activate a license:
@@ -97,7 +85,7 @@ Pack encrypted, tamper-proof payloads bound to your product credentials:
 
 ---
 
-## 5. Sandboxed Host Diagnostics
+## 4. Sandboxed Host Diagnostics
 
 When running inside DaVinci Resolve or host environments installed from the Mac App Store or Windows MSIX AppContainer, application storage paths may be sandboxed and redirected. 
 
