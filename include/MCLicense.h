@@ -381,6 +381,8 @@ public:
 #endif
   }
 
+  NexKeyRuntimeLicenseHandle *handle() const noexcept { return handle_; }
+
   bool licenseAllows() const {
     if (!handle_) return true;
     return nexkeyruntime_license_render_decision(handle_) ==
@@ -545,6 +547,7 @@ public:
   void syncNow() {}
   void syncNowAsync() {}
   bool allowed() const { return true; }
+  void *handle() const noexcept { return nullptr; }
   ReceiptEdition edition() const { return ReceiptEdition::Full; }
   int daysRemaining() const { return 0; }
   bool demoWatermark() const { return false; }
