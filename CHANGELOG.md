@@ -19,6 +19,11 @@ documented in this file.
   - `--sandbox` flag: Prepares bundles for immediate local testing locked to tenant `mcnexus-sandbox`.
   - `--debug` flag: Captures GPU shader compilation and lifecycle diagnostics to a local log file with zero impact on real-time playback.
 
+### Fixed
+
+- **Credential Lifecycle Management**: Resolved an issue where read-only license handles could unexpectedly rewrite previously cleared credentials during background poll cycles.
+- **Dynamic License Synchronization**: Background polling and on-demand synchronization routines now dynamically reflect updated credentials across active license handles.
+
 ## [1.2.1] - 2026-11-03
 
 ### Fixed
