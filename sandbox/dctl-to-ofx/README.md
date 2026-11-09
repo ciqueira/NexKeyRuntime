@@ -28,6 +28,14 @@ sandbox/dctl-to-ofx/
 3. **Hardware Acceleration**: Metal on macOS (with automatic fallback to OS JIT compiler if Command Line Tools are absent) and OpenCL on Windows via the GPU video driver.
 4. **Deterministic Sandbox Isolation**: Tenant locked to `mcnexus-sandbox` with pre-embedded test keys.
 
+### Asset Vault Protection
+
+The DCTL-to-OFX pipeline is protected by the **NexKeyRuntime Asset Vault**:
+
+- **Authenticated Encryption**: Shaders, 3D LUT tables, and UI manifests are packaged into an encrypted container (`payload.nexasset`) using AES-256-GCM.
+- **In-Memory GPU Pipeline**: Shaders and 3D LUTs are loaded directly into the GPU driver at startup without writing unencrypted files to disk.
+- **License Enforcement**: Container decryption requires a verified NexKey license or an active sandbox certificate.
+
 ---
 
 ## 2. Developer Workflow (CLI)

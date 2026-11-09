@@ -20,15 +20,15 @@
 extern "C" {
 #endif
 
-/* Kept in step with MCSDK/VERSION, which is the file a human edits; CI fails
+/* Kept in step with the SDK release version; CI fails
    the build if they disagree. These macros cannot simply be generated from it:
    they are public API (the package-consumer test asserts nexkeyruntime_version()
    equals NEXKEYRUNTIME_VERSION_STRING), and this header ships as SOURCE in the
    public repository rather than as a build artifact. */
 #define NEXKEYRUNTIME_VERSION_MAJOR 1
-#define NEXKEYRUNTIME_VERSION_MINOR 3
+#define NEXKEYRUNTIME_VERSION_MINOR 4
 #define NEXKEYRUNTIME_VERSION_PATCH 0
-#define NEXKEYRUNTIME_VERSION_STRING "1.3.0"
+#define NEXKEYRUNTIME_VERSION_STRING "1.4.0"
 
 #define NEXKEYRUNTIME_VERSION_CAPACITY 64
 #define NEXKEYRUNTIME_ID_CAPACITY 160

@@ -1,7 +1,7 @@
 # nexkeyctl: NexKeyRuntime Command-Line Control Tool
 
 `nexkeyctl` is the native CLI utility for:
-1. **Packaging DCTL shaders into secure OpenFX plugins** (`package-dctl`, `generate-asset-keys`).
+1. **Packaging DCTL shaders into secure OpenFX plugins via Asset Vault** (`package-dctl`, `generate-asset-keys`).
 2. **Activating, inspecting, and managing NexKeyRuntime licenses** (`--activate`, `--deactivate`, `--status`, `--sync`).
 3. **Checking remote updates and product notices** (`--updates`).
 
@@ -12,23 +12,23 @@
 Compiling `nexkeyctl` on your machine ensures the executable is locally produced and recognized as trusted by macOS (avoiding Gatekeeper quarantine alerts).
 
 ### Prerequisites
-- CMake 3.20+
-- C++17 compiler (Clang / Xcode on macOS, MSVC on Windows)
-- The **NexKeyRuntime SDK** binary package (downloaded and extracted from [GitHub Releases](https://github.com/ciqueira/NexKeyRuntime/releases))
+- **Compiler**: C++17 compliant compiler (AppleClang 14+, GCC 10+, or MSVC 2019+).
+- **CMake**: Version 3.20 or newer.
+- **Static Library**: The **NexKeyRuntime SDK** binary package (`libnexkeyruntime.a` / `nexkeyruntime.lib`) downloaded from [GitHub Releases](https://github.com/ciqueira/NexKeyRuntime/releases).
 
-### Build Steps
-
+### macOS (Terminal)
 ```bash
-# Point CMAKE_PREFIX_PATH to the extracted NexKeyRuntime SDK directory:
 cmake -S tools/nexkeyctl -B tools/nexkeyctl/build -DCMAKE_PREFIX_PATH=/path/to/nexkeyruntime-sdk
+cmake --build tools/nexkeyctl/build -j8
+```
+*Artifact output:* `tools/nexkeyctl/build/nexkeyctl`
 
-# Compile the executable:
+### Windows (PowerShell / Developer Command Prompt)
+```cmd
+cmake -S tools/nexkeyctl -B tools/nexkeyctl/build -DCMAKE_PREFIX_PATH=C:\path\to\nexkeyruntime-sdk
 cmake --build tools/nexkeyctl/build --config Release
 ```
-
-*Binary executable location:*
-- **macOS**: `tools/nexkeyctl/build/nexkeyctl`
-- **Windows**: `tools/nexkeyctl/build/Release/nexkeyctl.exe`
+*Artifact output:* `tools\nexkeyctl\build\Release\nexkeyctl.exe`
 
 ---
 
@@ -44,8 +44,8 @@ Convert any standard DaVinci Resolve DCTL script into a loaded OFX bundle for te
   --output=build
 ```
 
-### Production Mode (Commercial Licensing & Asset Protection)
-Pack encrypted, tamper-proof payloads bound to your product credentials:
+### Production Mode (Commercial Licensing & Asset Vault Protection)
+Pack encrypted, tamper-proof payloads bound to your product credentials using the NexKeyRuntime Asset Vault (AES-256-GCM):
 ```bash
 # 1. Generate cryptographic keys:
 ./nexkeyctl generate-asset-keys --product-id=com.studio.look --output=./keys

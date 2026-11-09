@@ -164,7 +164,7 @@ inline ActiveItem chooseActiveItem(bool haveNotice,
 class Notices {
 public:
   // How the plugin opens a URL. Passed in rather than called directly so this
-  // header stays free of the platform launchers in MCColorEqualizer.cpp.
+  // header stays free of host or platform specific URL launchers.
   // Returns non-zero when the URL actually opened; the SDK uses that answer
   // to fall back from the mcnexus:// deep link to the https:// one, which is
   // what keeps the button useful on a machine with no MCNexus installed.

@@ -1,11 +1,12 @@
 // =============================================================================
-// NexKeyRuntime Sandbox: Clean Reference OFX Plugin (Profile A Showcase)
+// NexKeyRuntime Sandbox: Reference OFX Plugin
 // -----------------------------------------------------------------------------
-// Integrated OpenFX Showcase:
+// Integrated OpenFX Reference:
 //   1. Profile A offline licensing with < 1 ns atomic render decision.
 //   2. Demo watermark rendering on CPU.
 //   3. Live host inspector diagnostics (status, edition, receipts path).
 //   4. Release updates check and vendor product notices directly in Inspector.
+//   5. Real-time hardware MIDI control (NexControl) with active node tracking.
 // =============================================================================
 
 #pragma once
@@ -14,6 +15,8 @@
 #include "ofxsProcessing.h"
 #include "MCLicense.h"
 #include "MCNotice.h"
+#include "MCNexControl.h"
+#include <memory>
 
 #define kPluginIdentifier "app.mcnexus.nexkey.sandbox-ofx"
 #define kPluginVersion "1.0.0"
@@ -42,6 +45,12 @@
 #define kParamNoticeBanner "noticeBanner"
 #define kParamBtnDismissNotice "btnDismissNotice"
 #define kParamBtnOpenAction "btnOpenAction"
+
+// Hardware MIDI control group
+#define kGroupNexControl "grpNexControl"
+#define kGroupNexControlLabel "NexControl MIDI Hardware"
+#define kParamInstanceInfo "instance_info"
+#define kParamInstanceInfoLabel "Hardware Focus Anchor"
 
 class CleanReferencePluginFactory
     : public OFX::PluginFactoryHelper<CleanReferencePluginFactory>

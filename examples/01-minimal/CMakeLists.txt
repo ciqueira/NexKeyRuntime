@@ -17,8 +17,6 @@ if(NOT TARGET NexKeyRuntime::NexKeyRuntime)
         "${CMAKE_CURRENT_SOURCE_DIR}/../../../build"
         "${CMAKE_CURRENT_SOURCE_DIR}/../../build"
         "${CMAKE_CURRENT_SOURCE_DIR}/../../lib"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../../../tools/nexkeyruntime-0.5.4/lib"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../../../../MCPlugins/third_party/nexkeyruntime/lib/macos"
     )
     find_path(NEXKEYRUNTIME_INCLUDE_DIR NAMES nexkeyruntime/nexkeyruntime.h
       PATHS

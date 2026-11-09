@@ -1,7 +1,7 @@
 // =============================================================================
-// NexKeyRuntime Sandbox: Clean Reference OFX Plugin (Profile A Showcase)
+// NexKeyRuntime Sandbox: Reference OFX Plugin
 // -----------------------------------------------------------------------------
-// Integrated showcase implementation.
+// Integrated reference implementation.
 // =============================================================================
 
 #include "CleanReferencePlugin.h"
@@ -22,6 +22,12 @@
 #include <windows.h>
 #include <shellapi.h>
 #endif
+
+namespace OFX {
+namespace Private {
+extern OfxHost *gHost;
+}
+}
 
 static int platformOpenUrl(const char *url) {
     if (!url || url[0] == '\0') return 0;
@@ -156,6 +162,10 @@ private:
     OFX::PushButtonParam *btnDismissNotice_;
     OFX::PushButtonParam *btnOpenAction_;
 
+    // Hardware MIDI control (NexControl)
+    OFX::StringParam *paramInstanceInfo_;
+    std::unique_ptr<mc::nexcontrol::InstanceBinding> nexcontrolBinding_;
+
     mc::License license_;
     mc::Notices notices_;
 };
@@ -176,7 +186,9 @@ CleanReferencePlugin::CleanReferencePlugin(OfxImageEffectHandle handle)
       btnCheckUpdates_(nullptr),
       paramNoticeBanner_(nullptr),
       btnDismissNotice_(nullptr),
-      btnOpenAction_(nullptr)
+      btnOpenAction_(nullptr),
+      paramInstanceInfo_(nullptr),
+      nexcontrolBinding_(nullptr)
 {
     srcClip_ = fetchClip(kOfxImageEffectSimpleSourceClipName);
     dstClip_ = fetchClip(kOfxImageEffectOutputClipName);
@@ -196,6 +208,7 @@ CleanReferencePlugin::CleanReferencePlugin(OfxImageEffectHandle handle)
     paramNoticeBanner_ = fetchStringParam(kParamNoticeBanner);
     btnDismissNotice_ = fetchPushButtonParam(kParamBtnDismissNotice);
     btnOpenAction_ = fetchPushButtonParam(kParamBtnOpenAction);
+    paramInstanceInfo_ = fetchStringParam(kParamInstanceInfo);
 
     // 1. Initialize NexKeyRuntime Profile A offline licensing
     license_.start();
@@ -203,11 +216,26 @@ CleanReferencePlugin::CleanReferencePlugin(OfxImageEffectHandle handle)
     // 2. Initialize process-wide NexKeyRuntime Updates and Notices
     notices_.start(platformOpenUrl, "DaVinciResolve", "20.0");
 
+    // 3. Initialize real-time hardware MIDI control subsystem
+    mc::nexcontrol::init(OFX::Private::gHost, license_.handle());
+    nexcontrolBinding_ = std::make_unique<mc::nexcontrol::InstanceBinding>(handle);
+    nexcontrolBinding_->addParam(kParamExposure, NEXCONTROL_PARAM_DOUBLE, -5.0, 5.0, -5.0, 5.0, 0.0);
+    nexcontrolBinding_->addParam(kParamInvert, NEXCONTROL_PARAM_BOOL, 0.0, 1.0, 0.0, 1.0, 0.0);
+
+    if (paramInstanceInfo_ && nexcontrolBinding_) {
+        std::string beacon = "Node Instance (ID: " +
+                             std::to_string(nexcontrolBinding_->instance_id()) + ")";
+        try {
+            paramInstanceInfo_->setValue(beacon);
+        } catch (...) {}
+    }
+
     updateLicenseTelemetry();
     updateNoticesUI();
 }
 
 CleanReferencePlugin::~CleanReferencePlugin() {
+    nexcontrolBinding_.reset();
     license_.shutdown();
     notices_.shutdown();
 }
@@ -432,6 +460,17 @@ void CleanReferencePluginFactory::describeInContext(OFX::ImageEffectDescriptor &
     OFX::PushButtonParamDescriptor *btnAction = desc.definePushButtonParam(kParamBtnOpenAction);
     btnAction->setLabels("Open Action Link", "Open Link", "Open Action Link");
     btnAction->setParent(*updGroup);
+
+    // 5. Hardware MIDI Control parameter group (NexControl)
+    OFX::GroupParamDescriptor *hwGroup = desc.defineGroupParam(kGroupNexControl);
+    hwGroup->setLabels(kGroupNexControlLabel, "NexControl", kGroupNexControlLabel);
+    hwGroup->setOpen(false);
+
+    OFX::StringParamDescriptor *hwInfo = desc.defineStringParam(kParamInstanceInfo);
+    hwInfo->setLabels(kParamInstanceInfoLabel, "Focus Slot", kParamInstanceInfoLabel);
+    hwInfo->setEnabled(false);
+    hwInfo->setEvaluateOnChange(false);
+    hwInfo->setParent(*hwGroup);
 }
 
 OFX::ImageEffect* CleanReferencePluginFactory::createInstance(OfxImageEffectHandle handle,

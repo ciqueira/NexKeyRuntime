@@ -2,7 +2,7 @@
 
 This directory provides clean, minimal, single-purpose code examples for each isolated feature of the **NexKeyRuntime** SDK.
 
-If you are looking for the **complete, interactive OpenFX reference plugin** that runs inside **DaVinci Resolve** with UI controls, watermarking, update checks, and notices, see [**`sandbox/ofx-plugin/`**](../sandbox/ofx-plugin/).
+If you are looking for the **OpenFX reference plugin** that runs inside **DaVinci Resolve** with UI controls, watermarking, update checks, notices, and real-time MIDI hardware control (NexControl), see [**`sandbox/ofx-plugin/`**](../sandbox/ofx-plugin/).
 
 ---
 
@@ -15,10 +15,11 @@ If you are looking for the **complete, interactive OpenFX reference plugin** tha
 | [**03-updates**](03-updates) | Release Discovery | Asynchronous semver check against Sandbox manifest, channel filtering (`stable`/`beta`). |
 | [**04-notices**](04-notices) | Product Advisories | Host-targeted compatibility notices, user dismissal, and reminders. |
 | [**05-offline**](05-offline) | Air-Gapped Licensing | Hardware fingerprint request export and offline signed certificate import. |
+| [**06-nexcontrol-ofx**](06-nexcontrol-ofx) | Hardware MIDI Control | OpenFX plugin integration with the NexControl real-time MIDI hardware subsystem. |
 
 ---
 
-## 2. Building All Minimal Examples
+## 2. Building All Minimal CLI Examples (01-05)
 
 ```bash
 cmake -S examples -B examples/build
@@ -27,7 +28,20 @@ cmake --build examples/build -j8
 
 ---
 
-## 3. Running Each Minimal Example
+## 3. Building the NexControl OpenFX Example (06)
+
+Because `06-nexcontrol-ofx` targets the OpenFX standard, it compiles as an `.ofx.bundle` shared module:
+
+```bash
+cmake -S examples/06-nexcontrol-ofx -B examples/06-nexcontrol-ofx/build
+cmake --build examples/06-nexcontrol-ofx/build -j8
+```
+
+After building, install the resulting bundle to your host plugin path (e.g., `/Library/OFX/Plugins` on macOS or `C:\Program Files\Common Files\OFX\Plugins` on Windows) to test with DaVinci Resolve.
+
+---
+
+## 4. Running Each Minimal Example
 
 ```bash
 # 1. Profile A: Verify local license decision:

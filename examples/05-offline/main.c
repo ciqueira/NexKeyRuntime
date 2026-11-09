@@ -41,8 +41,7 @@ static char *resolve_product_data(void) {
         "sandbox/mcnexus-sandbox.nexkeydat",
         "../sandbox/mcnexus-sandbox.nexkeydat",
         "../../sandbox/mcnexus-sandbox.nexkeydat",
-        "../../../sandbox/mcnexus-sandbox.nexkeydat",
-        "MCSDK/NexKeyRuntime/sandbox/mcnexus-sandbox.nexkeydat"
+        "../../../sandbox/mcnexus-sandbox.nexkeydat"
     };
     for (size_t i = 0; i < sizeof(candidates) / sizeof(candidates[0]); ++i) {
         char *data = read_file_string(candidates[i]);

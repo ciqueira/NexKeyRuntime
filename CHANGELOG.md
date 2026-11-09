@@ -3,6 +3,25 @@
 All notable changes to the NexKeyRuntime public repository will be
 documented in this file.
 
+## [1.4.0] - 2026-11-08
+
+### Added
+
+- **NexControl Hardware Subsystem**:
+  - Real-time hardware control integration for OpenFX plugins with external MIDI surfaces (Midi Fighter Twister and custom MIDI controllers).
+  - Low-latency binary IPC transport and relative encoder support (Two's Complement and Binary Offset 64).
+  - Multi-tier device profiles: built-in certified mappings, generic MIDI fallback, and customizable JSON device profiles.
+  - Automatic in-process active node tracking in DaVinci Resolve without requiring OS Accessibility permissions.
+  - Multi-plugin instance isolation ensuring independent hardware control across different tools on the same timeline.
+  - Full support for continuous sliders (`Double`), discrete dropdown selectors (`Choice`), and boolean switches (`Boolean`).
+  - Seamless timeline viewer refresh during playback pause.
+- **Universal DCTL Runner NexControl Integration**:
+  - Automatic discovery and dynamic binding of DCTL UI parameters to physical hardware controls.
+  - Embedded `grpNexControl` parameter group with status indicator for the DaVinci Resolve Inspector.
+- **Reference Example & Schemas**:
+  - Added reference OpenFX example in `examples/06-nexcontrol-ofx/`.
+  - Added JSON schema for MIDI controller profile validation in `schemas/midi-device-profile.schema.json`.
+
 ## [1.3.0] - 2026-11-04
 
 ### Added

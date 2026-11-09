@@ -16,9 +16,8 @@
 // same Perfil B calls, in a separate process from the plugin.
 //
 // --updates covers the OTHER handle, for a different reason: not that a second
-// process is needed, but that NO process consumes it. The ColorEqualizer only
-// creates the license handle, so without this command the update/notice half
-// of the ABI could only ever be exercised against a unit-test fixture.
+// process is needed, but to provide a standalone CLI runner for release discovery
+// and product notices outside the OFX host environment.
 
 #include <nexkeyruntime/nexkeyruntime.h>
 
@@ -45,8 +44,7 @@
 namespace {
 
 // Baked in so the common case needs no flag, overridable so the tool stays
-// general — it lives in MCSDK/tools and has no business being welded to one
-// product. Resolution order: --tenant, then $NEXKEYRUNTIME_TENANT, then this.
+// general across products. Resolution order: --tenant, then $NEXKEYRUNTIME_TENANT, then this.
 //
 // Whichever wins is always PRINTED. A tool that silently defaults to a tenant
 // and does not say so can deactivate the wrong license and look like it
@@ -416,11 +414,8 @@ const char *defaultArchitecture() {
 // Updates and notices, in a process that is not the OFX host — the same
 // reason the licensing commands above exist, for the other handle.
 //
-// It is what makes I2/I3 of E2E_VALIDATION.md runnable at all: nothing else
-// consumes this half of the ABI today. The ColorEqualizer only ever creates
-// the LICENSE handle, so until this command existed the update path had
-// unit coverage over a fixture and no way to be exercised against a real
-// gateway response.
+// It provides a standalone client to exercise the update and notice half
+// of the ABI against real gateway responses outside host plugins.
 //
 // No ProductData here, deliberately: the update handle does not take one.
 // Manifests are public and unsigned by design (SPEC_UPDATES_NOTICES.md) —
@@ -747,8 +742,7 @@ int main(int argc, char **argv) {
   // Identify ourselves for the same reason an integrator should: an activation
   // is shared by every program on the machine holding that entitlement, and
   // one that declares nothing is recorded as "unknown" — indistinguishable
-  // from any other silent client. This tool asked ColorEqualizer to do it, so
-  // it does it too.
+  // from any other silent client.
   nexkeyruntime_license_set_metadata(handle, "product", "nexkeyctl");
 
   // No background poller: this is a one-shot command that exits immediately,

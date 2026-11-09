@@ -1,4 +1,7 @@
 cmake_minimum_required(VERSION 3.20)
+if(POLICY CMP0169)
+  cmake_policy(SET CMP0169 OLD)
+endif()
 
 project(NexKeySandboxPlugin LANGUAGES CXX)
 
@@ -8,7 +11,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # 1. Locate OpenFX SDK
 if(NOT DEFINED OFX_ROOT)
   set(POSSIBLE_OFX_PATHS
-    "${CMAKE_CURRENT_SOURCE_DIR}/../../../../MCPlugins/third_party/openfx"
     "${CMAKE_CURRENT_SOURCE_DIR}/../../third_party/openfx"
   )
   foreach(p IN LISTS POSSIBLE_OFX_PATHS)
@@ -40,9 +42,12 @@ else()
   FetchContent_Declare(
     openfx
     GIT_REPOSITORY https://github.com/AcademySoftwareFoundation/openfx.git
-    GIT_TAG OFX_Release_1_4_TAG
+    GIT_TAG main
   )
-  FetchContent_MakeAvailable(openfx)
+  FetchContent_GetProperties(openfx)
+  if(NOT openfx_POPULATED)
+    FetchContent_Populate(openfx)
+  endif()
   set(OFX_INCLUDE_DIRS
     "${openfx_SOURCE_DIR}/include"
     "${openfx_SOURCE_DIR}/Support/include"
@@ -64,13 +69,11 @@ if(NOT TARGET NexKeyRuntime::NexKeyRuntime)
   find_package(NexKeyRuntime CONFIG QUIET)
 
   if(NOT NexKeyRuntime_FOUND)
-    find_library(NEXKEYRUNTIME_LIB NAMES nexkeyruntime libnexkeyruntime
+    find_library(NEXKEYRUNTIME_LIB NAMES libnexkeyruntime.a nexkeyruntime libnexkeyruntime
       PATHS
         "${CMAKE_CURRENT_SOURCE_DIR}/../../../build"
         "${CMAKE_CURRENT_SOURCE_DIR}/../../build"
         "${CMAKE_CURRENT_SOURCE_DIR}/../../lib"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../../../tools/nexkeyruntime-0.5.4/lib"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../../../../MCPlugins/third_party/nexkeyruntime/lib/macos"
     )
     find_path(NEXKEYRUNTIME_INCLUDE_DIR NAMES nexkeyruntime/nexkeyruntime.h
       PATHS
@@ -93,11 +96,34 @@ if(NOT TARGET NexKeyRuntime::NexKeyRuntime)
   endif()
 endif()
 
+# 2b. Locate NexControl Client Library
+if(NOT TARGET NexKeyRuntime::nexcontrol AND NOT TARGET nexcontrol)
+  find_library(NEXCONTROL_LIB NAMES libnexcontrol.a nexcontrol libnexcontrol
+    PATHS
+      "${CMAKE_CURRENT_SOURCE_DIR}/../../lib"
+      "${CMAKE_CURRENT_SOURCE_DIR}/../../build/lib"
+      "${CMAKE_CURRENT_SOURCE_DIR}/../../build"
+      "${CMAKE_CURRENT_SOURCE_DIR}/../../../build"
+      "${CMAKE_CURRENT_SOURCE_DIR}/../../../build/src/nexcontrol"
+  )
+  if(NEXCONTROL_LIB)
+    add_library(NexKeyRuntime::nexcontrol STATIC IMPORTED GLOBAL)
+    set_target_properties(NexKeyRuntime::nexcontrol PROPERTIES
+      IMPORTED_LOCATION "${NEXCONTROL_LIB}"
+      INTERFACE_INCLUDE_DIRECTORIES "${CMAKE_CURRENT_SOURCE_DIR}/../../include"
+    )
+  endif()
+endif()
+
 # 3. Create OFX Plugin Target
 add_library(NexKeySandboxPlugin MODULE
   src/CleanReferencePlugin.cpp
   ${OFX_SUPPORT_SOURCES}
 )
+
+if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|AppleClang")
+  target_compile_options(NexKeySandboxPlugin PRIVATE -Wno-dynamic-exception-spec)
+endif()
 
 target_compile_definitions(NexKeySandboxPlugin PRIVATE
   MC_NEXKEY_ENABLED=1
@@ -116,6 +142,9 @@ target_include_directories(NexKeySandboxPlugin PRIVATE
 )
 
 target_link_libraries(NexKeySandboxPlugin PRIVATE NexKeyRuntime::NexKeyRuntime)
+if(TARGET NexKeyRuntime::nexcontrol)
+  target_link_libraries(NexKeySandboxPlugin PRIVATE NexKeyRuntime::nexcontrol)
+endif()
 
 if(APPLE)
   find_library(SODIUM_LIB NAMES sodium PATHS /opt/homebrew/lib /usr/local/lib)
@@ -128,6 +157,7 @@ if(APPLE)
     "-framework IOKit"
     "-framework Foundation"
     "-framework Security"
+    "-framework AppKit"
   )
 
   # Standard macOS OFX bundle directory structure:

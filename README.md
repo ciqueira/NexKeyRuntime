@@ -1,15 +1,17 @@
 # NexKeyRuntime
 
 NexKeyRuntime is a native C/C++14 SDK for update discovery, product notices,
-and offline license verification in desktop plugins and applications backed by
-Nexus.
+offline license verification, and real-time MIDI hardware control (NexControl)
+in desktop plugins and applications backed by Nexus.
 
-It exposes two independent handles:
+It exposes three primary capabilities:
 
 - `NexKeyRuntimeHandle`: update checks and product notices (both profiles,
   always available).
 - `NexKeyRuntimeLicenseHandle`: offline license verification and self-service
   activation.
+- `NexControl`: zero-latency binary IPC subsystem connecting OpenFX plugins
+  with physical MIDI hardware surfaces (such as Midi Fighter Twister and custom MIDI controllers).
 
 ---
 
@@ -17,21 +19,25 @@ It exposes two independent handles:
 
 This repository includes a dedicated **[Developer Sandbox](sandbox/)** with pre-provisioned test license keys, signed trust envelopes, precompiled OFX runners, and a ready-to-run test environment:
 
-- **[sandbox/dctl-to-ofx/](sandbox/dctl-to-ofx/)**: Convert DCTL color scripts and 3D LUTs into native OpenFX plugins with zero C++ code using precompiled macOS (Metal) and Windows (OpenCL) runners.
-- **[sandbox/](sandbox/)**: Dedicated Sandbox documentation, trust envelope (`mcnexus-sandbox.nexkeydat`), test keys catalog (`licenses.json`), and the **[all-in-one OFX reference plugin](sandbox/ofx-plugin/)**.
+- **[sandbox/dctl-to-ofx/](sandbox/dctl-to-ofx/)**: Convert DCTL color scripts and 3D LUTs into native OpenFX plugins with zero C++ code and Asset Vault encryption using precompiled macOS (Metal) and Windows (OpenCL) runners.
+- **[sandbox/](sandbox/)**: Dedicated Sandbox documentation, trust envelope (`mcnexus-sandbox.nexkeydat`), test keys catalog (`licenses.json`), and the **[reference OFX plugin](sandbox/ofx-plugin/)**.
 - **[tools/nexkeyctl/](tools/nexkeyctl/)**: The official command-line utility to activate, deactivate, inspect license state, and test updates/notices from your terminal.
 - **[examples/](examples/)**: Minimal, single-purpose C examples for every SDK feature.
 
 ### Build All Examples and CLI
 
 ```bash
-# Build the Clean Reference OFX Plugin (Profile A Showcase):
+# Build the Reference OFX Plugin:
 cmake -S sandbox/ofx-plugin -B sandbox/ofx-plugin/build
 cmake --build sandbox/ofx-plugin/build -j8
 
 # Build all minimal SDK examples:
 cmake -S examples -B examples/build
 cmake --build examples/build -j8
+
+# Build the NexControl Hardware MIDI Reference Plugin (OpenFX):
+cmake -S examples/06-nexcontrol-ofx -B examples/06-nexcontrol-ofx/build
+cmake --build examples/06-nexcontrol-ofx/build -j8
 
 # Build the CLI utility:
 cmake -S tools/nexkeyctl -B tools/nexkeyctl/build
@@ -90,7 +96,7 @@ void pluginUnload(void) {
 }
 ```
 
-For C++ OFX plugins, [`include/MCLicense.h`](include/MCLicense.h) provides a zero-overhead convenience wrapper handling thread-safe receipt reloading and telemetry reports.
+For C++ OFX plugins, [`include/MCLicense.h`](include/MCLicense.h) provides a zero-overhead convenience wrapper handling thread-safe receipt reloading and telemetry reports, and [`include/MCNexControl.h`](include/MCNexControl.h) provides zero-latency hardware parameter binding.
 
 ---
 
@@ -98,17 +104,19 @@ For C++ OFX plugins, [`include/MCLicense.h`](include/MCLicense.h) provides a zer
 
 - [sandbox/](sandbox/): sandbox environment, pre-provisioned keys, and AI prompts.
 - [docs/INTEGRATION.md](docs/INTEGRATION.md): the license handle end to end (both profiles, UI status reporting, and how external activations reach your plugin).
+- [docs/NEXCONTROL_INTEGRATION.md](docs/NEXCONTROL_INTEGRATION.md): integrating the real-time MIDI hardware control subsystem (NexControl) into OpenFX plugins.
 - [docs/UPDATES_AND_NOTICES.md](docs/UPDATES_AND_NOTICES.md): the update handle (release checks, product notices, audience and the actions you can offer).
 - [docs/OFFLINE.md](docs/OFFLINE.md): activating a machine that cannot reach the network, and releasing its seat afterwards.
 - [docs/ABI_POLICY.md](docs/ABI_POLICY.md): ABI stability and compatibility guarantees.
-- [sandbox/ofx-plugin/](sandbox/ofx-plugin/): all-in-one OpenFX reference plugin for DaVinci Resolve.
+- [sandbox/ofx-plugin/](sandbox/ofx-plugin/): reference OpenFX plugin for DaVinci Resolve.
 - [examples/](examples/): minimal single-purpose C examples:
   - `01-minimal`: fast terminal validator (< 1 ns atomic check)
   - `02-activation`: autonomous licensing
   - `03-updates`: release checks and channels
   - `04-notices`: host-targeted product advisories
   - `05-offline`: air-gapped activation workflow
-- [schemas/](schemas/): JSON wire formats: ProductData, activation certificate, and update manifest.
+  - `06-nexcontrol-ofx`: hardware MIDI control and parameter automation in OpenFX
+- [schemas/](schemas/): JSON wire formats: ProductData, activation certificate, update manifest, and MIDI device profile.
 
 ---
 

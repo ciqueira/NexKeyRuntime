@@ -37,15 +37,15 @@ All keys are pre-registered on the Sandbox Gateway and ready for immediate testi
 
 ## 3. The Three Sandbox Testbeds
 
-The Sandbox provides three unified testbeds to validate all capabilities:
+The Sandbox provides three testbeds to validate all capabilities:
 
 1. **DCTL-to-OFX Conversion:** [**`sandbox/dctl-to-ofx/`**](dctl-to-ofx/)
    - Turn DCTL color scripts and 3D LUTs into native OpenFX plugins for DaVinci Resolve with zero C++ code.
    - Includes precompiled immutable runners for macOS (Metal) and Windows (OpenCL), automated scripts, and test examples.
-2. **Host & Visual Showcase:** [**`sandbox/ofx-plugin/`**](ofx-plugin/)
+2. **OpenFX Host Plugin:** [**`sandbox/ofx-plugin/`**](ofx-plugin/)
    - Real OpenFX plugin bundle (`NexKeySandboxPlugin.ofx.bundle`) that installs directly into DaVinci Resolve or Premiere Pro.
-   - Allows testing atomic render decisions (`< 1 ns`), CPU demo watermarks, license edition changes, update notifications, and vendor notices live in the host Inspector.
-3. **Terminal & Autonomous Showcase:** [**`tools/nexkeyctl/`**](../tools/nexkeyctl/)
+   - Allows testing atomic render decisions (`< 1 ns`), CPU demo watermarks, license edition changes, update notifications, vendor notices, and real-time MIDI hardware control (`NexControl`) live in the host Inspector.
+3. **CLI Control Tool:** [**`tools/nexkeyctl/`**](../tools/nexkeyctl/)
    - Command-line tool to activate test keys, inspect local receipts, release seats, check updates, and test offline air-gapped exports.
 
 ```bash
