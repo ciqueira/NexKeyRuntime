@@ -79,7 +79,9 @@
           "type": "string",
           "enum": [
             "twos_complement",
-            "binary_offset_64"
+            "binary_offset_64",
+            "sign_magnitude",
+            "absolute_step"
           ],
           "default": "twos_complement",
           "description": "Mathematical relative encoding format."
