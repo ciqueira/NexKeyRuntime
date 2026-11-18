@@ -23,7 +23,7 @@ flowchart LR
 1. **Hardware Connection & Transport**:
    The plugin does not link MIDI drivers or manage device connections. The background desktop service (**[MCNexus](https://github.com/ciqueira/MCNexus)** / `NexControlHub`) handles physical controller enumeration and transmits relative deltas over low-latency binary IPC (Unix Domain Sockets on macOS, Named Pipes on Windows).
 2. **3-Tier Hardware Profile Abstraction**:
-   - **Tier 1 (Custom Profiles)**: User-defined JSON files placed in `~/Library/Application Support/MCNexus/profiles/` (macOS) or `%APPDATA%\MCNexus\profiles\` (Windows) validated against `schemas/midi-device-profile.schema.json`, with live hot-reloading (including reference templates for devices like **Arturia BeatStep** and **Korg nanoKONTROL Studio**).
+   - **Tier 1 (Custom Profiles)**: User-defined JSON files placed in `~/Library/Application Support/MCNexus/profiles/` (macOS) or `%APPDATA%\MCNexus\profiles\` (Windows) validated against `schemas/midi-device-profile.schema.json`, with live hot-reloading. Ready-to-use Tier 1 profiles are available for **Intech Studio EN16 + BU16**, **Intech Studio EN16 (Standalone)**, **Loupedeck** (manual mapping via Loupedeck MIDI Plugin), **Arturia BeatStep**, **Korg nanoKONTROL Studio**, and extended **Behringer X-TOUCH MINI** channel layouts.
    - **Tier 2 (Factory Certified)**: Native built-in support for **Midi Fighter Twister** (4 banks, 64 encoders via `binary_offset_64`), **MCMIDI Atom MIDI Hub** (`twos_complement`), and **Behringer X-TOUCH MINI** (`sign_magnitude` MC Mode and `absolute_step` Standard Mode).
    - **Tier 3 (Universal Generic Fallback)**: 1:1 CC fallback filtering reserved MIDI CCs (0, 32, 120..127).
 3. **Automatic Active Node Tracking (macOS & Windows)**:
@@ -171,3 +171,18 @@ Users or manufacturers can create custom profiles in:
 - Windows: `%APPDATA%\MCNexus\profiles\<model>.json`
 
 Profiles configure encoder modes (`twos_complement`, `binary_offset_64`, `sign_magnitude`, `absolute_step`), CC ranges, MIDI channels, banks, and push switch actions without requiring plugin recompilation.
+
+### Supported Controllers Summary
+
+| Controller | Tier | Notes |
+| :--- | :--- | :--- |
+| **DJ TechTools Midi Fighter Twister** | Tier 2 (Built-in) | 16 infinite encoders across 4 banks with push-to-reset. |
+| **Behringer X-TOUCH MINI** | Tier 2 (Built-in) + Tier 1 | Factory Standard Mode, MC Mode, and fallback built in; downloadable Tier 1 profile adds extended relative channels. |
+| **Intech Studio EN16 + BU16** | Tier 1 | 16 infinite encoders with push-to-reset plus 16 tactile buttons over a single `Grid` port (factory 4-page firmware or custom layouts). |
+| **Intech Studio EN16 (Standalone)** | Tier 1 | Single-module 16-encoder setup using the `Grid` profile. |
+| **Loupedeck (CT, Live, Live S, MX Creative Console)** | Tier 1 (manual mapping) | Works via the third-party MIDI Plugin in Loupedeck / Logi Options+ software over a virtual MIDI port containing `Loupedeck` in its name (`IAC Driver` / `loopMIDI`) with one-time manual dial mapping. |
+| **Arturia BeatStep** | Tier 1 | 16 infinite encoders plus 16 pads mapped to parameter reset. |
+| **Korg nanoKONTROL Studio** | Tier 1 | 8 infinite encoders plus button clicks over USB or Bluetooth MIDI. |
+| **Elgato Stream Deck +** | Roadmap* | 4 rotary dials, 8 LCD keys, and Touch Strip via dedicated Stream Deck plugin bridge. |
+
+Download ready-to-use Tier 1 `.json` profiles and setup instructions at [MCNexus NexControl MIDI Docs](https://mcnexus.app/docs/developers/midi/).
