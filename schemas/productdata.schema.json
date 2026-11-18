@@ -28,7 +28,7 @@
   "$defs": {
     "payload": {
       "type": "object",
-      "description": "Decoded, self-verified payload; mirrors MCBackend/shared/licensing/productData.ts's buildProductDataBlob output.",
+      "description": "Decoded, self-verified payload embedded in ProductData blobs.",
       "required": ["formatVersion", "baseUrl", "keyring", "issuedAt", "notAfter"],
       "additionalProperties": false,
       "properties": {

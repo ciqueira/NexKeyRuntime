@@ -4,20 +4,20 @@
 // The OTHER NexKeyRuntime handle: updates and notices.
 //
 // It shares nothing with MCLicense.h: no ProductData, no receipt, no
-// certificate. Manifests are public and unsigned by design
-// (SPEC_UPDATES_NOTICES.md): "0.1.2 exists" is not a claim that needs a
+// certificate. Manifests are public and unsigned by design:
+// "0.1.2 exists" is not a claim that needs a
 // signature, and keeping the two handles apart is what lets a plugin ship
 // updates without licensing, or the reverse.
 //
 // What it feeds is one collapsed group at the top of the panel that stays
 // INVISIBLE until there is something to say. The plugin deliberately carries
-// no licence panel: MCNexus already shows edition, seats, validity and
+// no license panel: MCNexus already shows edition, seats, validity and
 // activation in full, and duplicating that here would be a second place to
 // keep correct. The most this plugin ever says is a single notice.
 //
 // It carries REMOTE notices only: updates and whatever the gateway has to
-// say. Licence state deliberately does not appear here: an unlicensed plugin
-// gets its own behaviour, designed separately, and folding the two into one
+// say. License state deliberately does not appear here: an unlicensed plugin
+// gets its own behavior, designed separately, and folding the two into one
 // slot would mean the same widget sometimes reports the server's news and
 // sometimes the local verdict.
 // =============================================================================
@@ -35,7 +35,7 @@
 namespace mc {
 
 // What the top group renders. Composed from two independent sources (the
-// local licence verdict and whatever the gateway had to say), so the panel
+// local license verdict and whatever the gateway had to say), so the panel
 // itself needs no rules of its own.
 struct NoticeView {
   bool visible = false;
@@ -46,7 +46,7 @@ struct NoticeView {
   // to refresh a parameter's label after describe(), and the spec says so in
   // as many words. Hiding and showing is decided by the host, and works.
   bool offerUpdate = false;      // "Update": there is a release to install
-  bool offerOpenNexus = false;   // "Open MCNexus": go sort the licence out
+  bool offerOpenNexus = false;   // "Open MCNexus": go sort the license out
 };
 
 // How long the UI thread is allowed to wait for a check that is in flight.
@@ -86,19 +86,16 @@ constexpr int kCheckWaitBudgetMs = 400;
 
 // WHICH CHANNEL THIS PLUGIN LISTENS TO.
 //
-// The SDK exposes two independent channels (SPEC_UPDATES_NOTICES.md): the
-// release channel ("there is a newer version") and the notice channel,
-// where the manifest author publishes arbitrary compatibility, security,
-// maintenance, migration and deprecation messages.
+// The SDK exposes two independent channels: the release channel ("there is a
+// newer version") and the notice channel, where the manifest author publishes
+// compatibility, security, maintenance, migration and deprecation messages.
 //
-// This plugin listens to the RELEASE channel only, by decision: an OFX plugin
-// has one thing worth interrupting a colourist for, and that is a new
-// version. The other notice types exist for other kinds of software.
+// This wrapper defaults to the RELEASE channel only: an OFX plugin has one
+// thing worth interrupting a colorist for, and that is a new version. Define
+// MC_NEXKEY_NOTICE_CHANNEL=0 before including if you also want notices shown.
 //
-// Off rather than deleted: the notice path is written and tested, so turning
-// it back on is one flag and no archaeology. With it off, chooseActiveItem is
-// told there is no notice, which means the priority rule stays exercised by
-// its own tests and does not become dead code that silently rots.
+// Keeping the flag explicit rather than deleting the path leaves both code
+// paths compile-tested without changing behavior.
 #ifndef MC_NEXKEY_NOTICE_CHANNEL
 #define MC_NEXKEY_NOTICE_CHANNEL 1
 #endif
@@ -123,22 +120,18 @@ inline const char *noticeArchitecture() {
 
 enum class ActiveItem { None, Notice, Update };
 
-// The spec's priority, applied here because THE SDK DOES NOT APPLY IT.
+// Display ranking across independent SDK channels.
 //
-// SPEC_UPDATES_NOTICES.md describes one ranking over four things (
-// critical notice, recommended notice, update, info notice) and says the
-// release is folded in as a synthetic notice of type "update". The runtime
-// does not do that: evaluator.cpp computes `has_update` on its own and never
-// puts it in the notice list, which is sorted by severity alone. So the two
-// arrive as independent channels and the ranking has to happen here.
+// `get_snapshot` reports `has_update` and `get_active_notice` reports active
+// notices sorted by severity; the SDK leaves UI precedence to the product:
+// critical notice > recommended notice > update > info notice.
 //
-// The consequence that actually bites is the info case. Giving the notice
-// blanket precedence (the obvious reading, and what this code did at first)
-// lets a purely informational notice bury a release the user would want. Only
-// `recommended` and `critical` outrank an update.
+// Giving every notice blanket precedence lets a purely informational notice
+// bury a release the user would want. Only `recommended` and `critical`
+// outrank an update.
 //
 // Pure and free-standing so it can be tested without a handle, a network or a
-// host, which is the only reason the table of cases below is checkable at all.
+// host.
 inline ActiveItem chooseActiveItem(bool haveNotice,
                                    NexKeyRuntimeNoticeSeverity severity,
                                    bool hasUpdate) {
@@ -151,16 +144,13 @@ inline ActiveItem chooseActiveItem(bool haveNotice,
 
 // Holds a reference to the process-wide update handle.
 //
-// ONE HANDLE PER PROCESS, NOT PER INSTANCE: changed 12/09/2026. Each instance
-// used to own a handle, so a grade with eight Color Equalizer nodes fired eight
-// identical manifest requests and each one raced the panel on its own.
-// SPEC_UPDATES_NOTICES.md §6 already says the state "é compartilhado entre as
-// instâncias do mesmo plugin no processo"; it simply was not. Sharing it also
-// means the check is paid for once: instance two onwards reads an answer that
-// has already landed and never waits.
+// ONE HANDLE PER PROCESS, NOT PER INSTANCE: sharing one handle across every
+// plugin instance prevents N nodes in a grade from firing N redundant manifest
+// requests and ensures subsequent instances read an already-completed check
+// without waiting.
 //
 // Non-copyable for the same reason License is: destroy() joins the SDK's
-// worker, and doing that twice inside a host is a crash, not a leak.
+// worker, and doing that twice inside a host would be unsafe.
 class Notices {
 public:
   // How the plugin opens a URL. Passed in rather than called directly so this
@@ -242,18 +232,11 @@ public:
 
   // Waits, for at most budgetMs, on whatever check is in flight.
   //
-  // THIS BLOCKS THE UI THREAD, deliberately, against the letter of
-  // SPEC_UPDATES_NOTICES.md §6 ("nunca bloquear a criação do plugin esperando
-  // rede"). The rule was written assuming the design in §5.1 ("apresente
-  // imediatamente o cache"), and that cache does not exist: there is no file
-  // I/O anywhere in nexkeyruntime.cpp, so every host load starts blind and
-  // "paint the cache now, collect the network later" paints nothing, forever,
-  // until some unrelated event happens to arrive after the answer.
-  //
-  // What the rule is really protecting is a host stalled once per node while a
-  // project loads. The shared handle above removes that: the check is fired
-  // once per process, so this waits once per process too; every later
-  // instance finds a status that is no longer CHECKING and returns at once.
+  // Because OpenFX plugins start without a persistent update cache on disk and
+  // have no idle callback between paint passes, waiting briefly once per
+  // process ensures the first cold load can display a notice or update
+  // immediately; every subsequent instance sees a settled status and returns
+  // without waiting.
   //
   // Returns true when the check settled inside the budget. A false is not an
   // error worth reporting: an answer that did not arrive in time is
@@ -298,18 +281,16 @@ public:
   }
 
   // Nudges a fresh check. Cheap and non-blocking: the SDK refuses with BUSY
-  // if one is already running, and honours its own schedule unless forced.
+  // if one is already running, and honors its own schedule unless forced.
   //
-  // `force` exists for the one place a user explicitly asks for a check (
-  // the Refresh License button), where honouring the schedule would mean the
-  // button does nothing most of the time it is pressed.
+  // `force` exists for the place a user explicitly asks for a check (the
+  // Refresh License button), where honoring the schedule would ignore the
+  // user's explicit request.
   //
-  // THE REFRESH BUTTON IS THE ONLY CALLER (§UX 12/09/2026). Poking on every
-  // slider touch made the notice pop up mid-session with no visible trigger,
-  // which read as a bug even though every check was legitimate. So this
-  // process makes exactly two kinds of check: the one start() fires at load,
-  // and the one a user asks for by name. Both are followed by waitForCheck(),
-  // because a check nobody collects is a check that changes nothing.
+  // Keep this tied to explicit user refreshes rather than slider drags so
+  // notices never appear mid-session without a clear trigger. Both start() and
+  // explicit refreshes follow up with waitForCheck() so completed results are
+  // reflected right away.
   void poke(bool force = false) {
     if (handle_) nexkeyruntime_request_check(handle_, force ? 1 : 0);
   }

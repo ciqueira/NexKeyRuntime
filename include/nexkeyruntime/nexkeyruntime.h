@@ -27,8 +27,8 @@ extern "C" {
    public repository rather than as a build artifact. */
 #define NEXKEYRUNTIME_VERSION_MAJOR 1
 #define NEXKEYRUNTIME_VERSION_MINOR 4
-#define NEXKEYRUNTIME_VERSION_PATCH 0
-#define NEXKEYRUNTIME_VERSION_STRING "1.4.0"
+#define NEXKEYRUNTIME_VERSION_PATCH 1
+#define NEXKEYRUNTIME_VERSION_STRING "1.4.1"
 
 #define NEXKEYRUNTIME_VERSION_CAPACITY 64
 #define NEXKEYRUNTIME_ID_CAPACITY 160
@@ -51,18 +51,16 @@ typedef enum NexKeyRuntimeResult {
   NEXKEYRUNTIME_BUFFER_TOO_SMALL = 9,
   NEXKEYRUNTIME_INTERNAL_ERROR = 10,
 
-  /* Licensing (§7.7, Fase 4A): appended starting at 20, never renumbering
-     0-10 above: those shipped with the update handle in Fase 1. Where a
-     meaning already exists here (invalid argument, internal error, network
-     error, ...) licensing reuses it instead of declaring a second name for
-     the same thing. */
+  /* Licensing codes: appended starting at 20 without renumbering 0-10 above.
+     Where an existing status code matches (invalid argument, internal error,
+     network error, ...), licensing reuses it. */
 
   /* configuration */
   NEXKEYRUNTIME_E_PRODUCT_DATA = 20,        /* blob invalid or tampered */
   NEXKEYRUNTIME_E_PRODUCT_DATA_EXPIRED = 21,
   NEXKEYRUNTIME_E_ABI_MISMATCH = 22,        /* product data formatVersion this build does not understand */
 
-  /* license (from the server; returned by Bloco B/C, not yet implemented (Fase 4B)) */
+  /* server-reported license errors (Profile B / background sync) */
   NEXKEYRUNTIME_E_LICENSE_KEY = 30,
   NEXKEYRUNTIME_E_ACTIVATION_LIMIT = 31,
   NEXKEYRUNTIME_E_LICENSE_EXPIRED = 32,
@@ -82,7 +80,7 @@ typedef enum NexKeyRuntimeResult {
   /* environment */
   NEXKEYRUNTIME_E_STORAGE = 50,             /* tenant directory unreadable/uncreatable */
 
-  /* asset vault (Pilar 3, Bloco 60) */
+  /* asset vault */
   NEXKEYRUNTIME_E_ASSET_INVALID = 60,
   NEXKEYRUNTIME_E_ASSET_SIGNATURE = 61,
   NEXKEYRUNTIME_E_ASSET_CORRUPT = 62,
@@ -248,15 +246,14 @@ NEXKEYRUNTIME_API NexKeyRuntimeResult nexkeyruntime_open_notice_action(
 );
 
 /* =================================================================
-   LICENSING (opt-in, §7.7): a second, independent handle. An app
-   can use the update handle above, this one, or both; neither knows
-   about the other.
+   LICENSING: a second, independent handle. An app can use the
+   update handle above, this one, or both; neither knows about the
+   other.
 
-   New NexKeyRuntimeResult values are appended starting at 20, never
-   renumbering 0-10 above: those already shipped with the update
-   handle in Fase 1, and where a meaning already exists there
-   (invalid argument, internal error, network error, ...) licensing
-   reuses it rather than declaring a second name for the same thing.
+   New NexKeyRuntimeResult values are appended starting at 20 without
+   renumbering 0-10 above. Where an existing status code matches
+   (invalid argument, internal error, network error, ...), licensing
+   reuses it instead of declaring a second name.
    ================================================================= */
 
 typedef struct NexKeyRuntimeLicenseHandle NexKeyRuntimeLicenseHandle;
@@ -266,11 +263,10 @@ typedef enum NexKeyRuntimeRenderDecision {
   NEXKEYRUNTIME_RENDER_ALLOW = 1
 } NexKeyRuntimeRenderDecision;
 
-/* Mirrors nexkeyruntime::licensing::LicenseStatus (LicenseStatus.h)
-   field-for-field; ActivationCertificateVerifier/LicenseStateMachine
-   are the only place these are DECIDED, this enum only reports one.
-   Local verification (load_local) only ever produces a subset of these (
-   see LicenseStatus.h for exactly which). */
+/* License status reported in snapshots. Local verification (load_local)
+   produces only the offline-verifiable subset (e.g. NOT_ACTIVATED,
+   ACTIVE, OFFLINE_GRACE, OFFLINE_GRACE_EXPIRED, EXPIRED,
+   DEVICE_MISMATCH, CERTIFICATE_INVALID, CLOCK_ROLLBACK). */
 typedef enum NexKeyRuntimeLicenseStatus {
   NEXKEYRUNTIME_LICENSE_UNKNOWN = 0,
   NEXKEYRUNTIME_LICENSE_NOT_ACTIVATED,
@@ -290,9 +286,9 @@ typedef enum NexKeyRuntimeLicenseStatus {
 } NexKeyRuntimeLicenseStatus;
 
 /* UNKNOWN = 0 so a future edition this build has never heard of does not
-   silently misreport as any specific existing one (§3.7.3). `edition` (the
-   string) is the authority; `edition_enum` is a convenience for callers who
-   would rather switch on an int. */
+   silently misreport as any existing one. `edition` (the string) is the
+   authority; `edition_enum` is a convenience for callers who prefer
+   switching on an integer. */
 typedef enum NexKeyRuntimeEdition {
   NEXKEYRUNTIME_EDITION_UNKNOWN = 0,
   NEXKEYRUNTIME_EDITION_BETA,
@@ -309,18 +305,17 @@ typedef struct NexKeyRuntimeLicenseSnapshot {
 
   int64_t activated_at;
 
-  /* the only axis the SDK itself imposes (§3.7.5) */
   int64_t expires_at;    /* 0 = perpetual */
   int32_t days_remaining; /* -1 if perpetual */
 
-  int64_t sync_after;         /* Fase 4B: when the poller would next try */
+  int64_t sync_after;         /* when the poller would next try */
   int64_t offline_valid_until;
-  int64_t last_synced_at;     /* Fase 4B: 0 until a sync has happened */
+  int64_t last_synced_at;     /* 0 until a sync has happened */
 
-  int32_t activations_used;   /* Fase 4B: 0 until reported by a sync */
+  int32_t activations_used;   /* 0 until reported by a sync */
   int32_t max_activations;
 
-  char edition[NEXKEYRUNTIME_VERSION_CAPACITY];   /* label; SDK never interprets it (§3.7.2) */
+  char edition[NEXKEYRUNTIME_VERSION_CAPACITY];   /* opaque label; not interpreted by SDK */
   NexKeyRuntimeEdition edition_enum;
   char activation_id[NEXKEYRUNTIME_ID_CAPACITY];
   char certificate_id[NEXKEYRUNTIME_ID_CAPACITY];
@@ -329,7 +324,7 @@ typedef struct NexKeyRuntimeLicenseSnapshot {
 NEXKEYRUNTIME_API NexKeyRuntimeLicenseHandle *nexkeyruntime_license_create(void);
 NEXKEYRUNTIME_API void nexkeyruntime_license_destroy(NexKeyRuntimeLicenseHandle *handle);
 
-/* ---- configuration (§3.14): one call for the common case ---- */
+/* ---- configuration: one call for the common case ---- */
 NEXKEYRUNTIME_API NexKeyRuntimeResult nexkeyruntime_license_set_product_data(
   NexKeyRuntimeLicenseHandle *handle,
   const char *product_data
@@ -338,8 +333,8 @@ NEXKEYRUNTIME_API NexKeyRuntimeResult nexkeyruntime_license_set_product_file(
   NexKeyRuntimeLicenseHandle *handle,
   const char *path
 );
-/* Mandatory (§3.7.1.1.1): not inside product_data. Must be called before
-   load_local(); load_local() fails NEXKEYRUNTIME_INVALID_CONFIG without it. */
+/* Mandatory: not stored inside product_data. Must be called before
+   load_local(); load_local() returns NEXKEYRUNTIME_INVALID_CONFIG without it. */
 NEXKEYRUNTIME_API NexKeyRuntimeResult nexkeyruntime_license_set_tenant_id(
   NexKeyRuntimeLicenseHandle *handle,
   const char *tenant_id
@@ -358,9 +353,8 @@ NEXKEYRUNTIME_API NexKeyRuntimeResult nexkeyruntime_license_set_variant(
   const char *variant
 );
 
-/* ===== BLOCO A: VERIFY: the four (after create/destroy) every OFX
-   uses. A plugin that never calls anything below this point is,
-   by construction, Profile A/read-only; see §7.7. ===== */
+/* ===== PROFILE A: VERIFY: the calls every plugin uses. A plugin that
+   never calls the activation block below operates as read-only Profile A. ===== */
 NEXKEYRUNTIME_API NexKeyRuntimeResult nexkeyruntime_license_load_local(
   NexKeyRuntimeLicenseHandle *handle
 );
@@ -374,8 +368,8 @@ NEXKEYRUNTIME_API NexKeyRuntimeRenderDecision nexkeyruntime_license_render_decis
   const NexKeyRuntimeLicenseHandle *handle
 );
 
-/* ===== BLOCO B: ACTIVATE: MCNexus (Profile A) or the app itself
-   (Profile B). A plugin that only validates never calls these (D15). ===== */
+/* ===== PROFILE B: ACTIVATE: MCNexus (Profile A) or the app itself
+   (Profile B). A plugin that only validates never calls these. ===== */
 NEXKEYRUNTIME_API NexKeyRuntimeResult nexkeyruntime_license_set_license_key(
   NexKeyRuntimeLicenseHandle *handle,
   const char *key
@@ -398,20 +392,17 @@ NEXKEYRUNTIME_API NexKeyRuntimeResult nexkeyruntime_license_publish_receipt(
 
 /* Writes a small JSON request file that lets someone else issue this
    machine an activation certificate without this machine ever reaching the
-   network; the usual reason is that the normal activation channel is
-   unreachable (backend down, install intentionally air-gapped). The file
-   carries this machine's binding (derived from the tenant id and the
-   hardware id, never the hardware id itself), the entitlement and a short
-   prefix of the license key already configured on this handle, and nothing
-   else; it is not a secret and is not signed by this machine, which holds
-   no key to sign with.
+   network (e.g. an unreachable backend or air-gapped installation). The file
+   carries this machine's derived binding (never raw hardware identifiers),
+   the entitlement, and a short prefix of the license key if configured on
+   this handle. It contains no secret.
 
    Requires set_product_data/set_product_file and set_tenant_id to have
    already succeeded (same precondition as load_local()); overwrites `path`
    if it exists. Fails with NEXKEYRUNTIME_INVALID_CONFIG if that
-   precondition is not met, NEXKEYRUNTIME_INTERNAL_ERROR if the hardware id
-   cannot be read (the same condition load_local() reports the same way),
-   or NEXKEYRUNTIME_E_STORAGE if `path` cannot be written.
+   precondition is not met, NEXKEYRUNTIME_INTERNAL_ERROR if the machine
+   binding cannot be derived, or NEXKEYRUNTIME_E_STORAGE if `path` cannot
+   be written.
 
    Whatever comes back in response to this file is a certificate: hand it
    to publish_receipt(), not to this function. */
@@ -420,42 +411,28 @@ NEXKEYRUNTIME_API NexKeyRuntimeResult nexkeyruntime_license_export_activation_re
   const char *path
 );
 
-/* The other half of the offline round trip: gives up this machine's licence
-   and writes the proof of it to `path`, without touching the network.
+/* The other half of the offline round trip: stops this machine's license
+   and writes the deactivation proof to `path`, without touching the network.
 
-   Order matters and is not configurable: the local receipts are deleted
-   FIRST, and only then is the proof written. That is what makes the proof
-   trustworthy without a signature: this machine holds no key to sign with,
-   and forging the file gains the forger nothing, because their own copy has
-   already stopped working. Whoever receives the file releases the seat on
-   the strength of that.
-
-   Deleting the receipts is the part that must not fail silently: if they
-   survive, the machine keeps rendering while its seat is handed back, which
-   is the one outcome this ordering exists to prevent. A failure to write the
-   proof afterwards is recoverable (call again, or release the seat by hand);
-   a failure to stop rendering is not.
+   Local receipts are cleared BEFORE the proof is written so a deactivated
+   machine cannot continue rendering. This ordering is enforced and not
+   configurable; forward the generated file unmodified to release the seat.
 
    Same preconditions as export_activation_request(). Returns
-   NEXKEYRUNTIME_E_NO_RECEIPT when there was nothing to give up: the machine
-   was not activated, so there is no seat to release and no proof to write. */
+   NEXKEYRUNTIME_E_NO_RECEIPT when there is no active receipt to release. */
 NEXKEYRUNTIME_API NexKeyRuntimeResult nexkeyruntime_license_export_deactivation_proof(
   NexKeyRuntimeLicenseHandle *handle,
   const char *path
 );
 
-/* ===== BLOCO C: SYNC: automatic once Fase 4B's poller runs; forcing
-   is optional. ===== */
+/* ===== SYNC: automatic background refresh when active; forcing is optional. ===== */
 
-/* Invoked on the POLLER thread, never on the render thread, every time a
-   background sync completes. Modelled on LexActivator's SetLicenseCallback,
-   which exists for the same reason: without it an integrator learns about a
-   revocation only by polling the SDK, which is the loop the SDK already runs
-   on their behalf (D36).
+/* Invoked on the poller thread, never on the render thread, every time a
+   background sync completes so an integrator learns about a revocation or
+   status change without polling the SDK.
 
-   The callback must not block and must not call back into this handle; it is
-   a notification, not a place to do work. Read the snapshot afterwards from
-   your own thread. */
+   The callback must not block and must not call back into this handle; read
+   the updated snapshot afterwards from your own thread. */
 typedef void (*NexKeyRuntimeLicenseCallback)(
   NexKeyRuntimeLicenseStatus status,
   void *user_data
@@ -470,10 +447,9 @@ NEXKEYRUNTIME_API NexKeyRuntimeResult nexkeyruntime_license_request_sync(
   NexKeyRuntimeLicenseHandle *handle,
   int force
 );
-/* Optional; overrides autodetection in either direction (§7.9.5, D7): the
-   default matters because assuming GUI would let an unattended render farm
-   hammer the backend, and assuming headless would mean a normal desktop user
-   never syncs. Autodetection errs toward interactive when it cannot tell. */
+/* Optional; overrides headless autodetection in either direction so
+   unattended render nodes stay offline-only while interactive sessions sync
+   normally. Autodetection defaults toward interactive when uncertain. */
 NEXKEYRUNTIME_API NexKeyRuntimeResult nexkeyruntime_license_set_headless(
   NexKeyRuntimeLicenseHandle *handle,
   int headless
@@ -490,14 +466,14 @@ typedef enum NexKeyRuntimeBackendId {
 
 typedef struct NexKeyRuntimeAsset NexKeyRuntimeAsset;
 
-/* Recupera a CEK de 32 bytes envelopada no recibo assinado da máquina */
+/* Retrieves the 32-byte content key associated with `product_id` for an active license handle. */
 NEXKEYRUNTIME_API NexKeyRuntimeResult nexkeyruntime_license_get_content_key(
   const NexKeyRuntimeLicenseHandle *handle,
   const char *product_id,
   uint8_t out_cek[32]
 );
 
-/* Abertura e inspeção de metadados do asset */
+/* Opens an encrypted asset container and inspects its metadata. */
 NEXKEYRUNTIME_API NexKeyRuntimeResult nexkeyruntime_asset_open(
   const char *path_utf8, 
   NexKeyRuntimeAsset **out_asset
@@ -517,7 +493,7 @@ NEXKEYRUNTIME_API NexKeyRuntimeResult nexkeyruntime_asset_get_product_data(
   size_t *bytes_needed
 );
 
-/* Decifragem autenticada na RAM usando a CEK obtida da licença */
+/* Verifies and decrypts the requested backend payload into volatile memory using `cek`. */
 NEXKEYRUNTIME_API NexKeyRuntimeResult nexkeyruntime_asset_decrypt(
   const uint8_t cek[32],
   NexKeyRuntimeAsset *asset,
@@ -526,17 +502,17 @@ NEXKEYRUNTIME_API NexKeyRuntimeResult nexkeyruntime_asset_decrypt(
   size_t *out_size
 );
 
-/* Limpeza mandatória de memória volátil (crypto_wipe) */
+/* Securely clears decrypted plaintext buffers owned by `asset`. */
 NEXKEYRUNTIME_API void nexkeyruntime_asset_release_plaintext(
   NexKeyRuntimeAsset *asset
 );
 
-/* Fechamento do handle de asset */
+/* Closes the asset handle and frees associated resources. */
 NEXKEYRUNTIME_API void nexkeyruntime_asset_close(
   NexKeyRuntimeAsset *asset
 );
 
-/* Utilitário para teste de sanitização em RAM sem Use-After-Free */
+/* Securely zeroes a caller-provided memory buffer. */
 NEXKEYRUNTIME_API void nexkeyruntime_asset_test_wipe(
   uint8_t *buffer,
   size_t size
