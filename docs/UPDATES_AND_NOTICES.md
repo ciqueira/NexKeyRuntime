@@ -26,8 +26,8 @@ public by design, so nothing needs to be signed or kept secret.
 
 `tenant_id`, `artifact_id` and the `base_url` for your product are issued
 together with your ProductData blob, as part of per-project setup (see the
-[README](../README.md)). They are not discoverable at runtime and there is no
-self-service signup yet.
+[README](../README.md)). Obtain these values from your tenant setup; they are
+not discoverable at runtime.
 
 ## One handle per process, not per instance
 
@@ -38,7 +38,7 @@ process; do not carry that assumption over.
 
 For a plugin, this matters: a project with fifty instances of your effect must
 not create fifty handles, or you will issue fifty requests for the same
-answer. Create one for the whole plug-in (a process-wide singleton created on
+answer. Create one for the whole plugin (a process-wide singleton created on
 first use) and let every instance read from it.
 
 ## Lifecycle
@@ -84,7 +84,7 @@ for your tenant** rather than relying on the built-in default.
 ### 2. Check
 
 ```c
-nexkeyruntime_request_check(updates, 0);   /* 0 = honour the schedule */
+nexkeyruntime_request_check(updates, 0);   /* 0 = honor the schedule */
 ```
 
 **This returns immediately and does the work in the background.** It is safe
@@ -97,7 +97,7 @@ updates" button), because it bypasses the schedule.
 
 There is no completion callback, and the SDK never writes to your UI. Read
 the result at a moment that suits your host: a timer, a window becoming
-active, or (where the host offers neither, as in an audio or video plug-in
+active, or (where the host offers neither, as in an audio or video plugin
 API) the next time the user interacts with your controls. Checking again
 costs nothing when the schedule says it is too soon, so calling it on every
 interaction is a reasonable pattern.
@@ -162,7 +162,7 @@ nexkeyruntime_destroy(updates);
 
 Returns only once any check in flight has been cancelled and finished, so a
 host may unload your bundle immediately afterwards. If you followed the
-singleton advice above, destroy it when your plug-in unloads, not when an
+singleton advice above, destroy it when your plugin unloads, not when an
 instance closes.
 
 ## Two channels, not one
@@ -197,7 +197,7 @@ host you are running in is never sent to the backend.
 
 This is why `host_name` and `host_version` are worth setting: without them, a
 notice scoped to a specific host matches nobody. Pass exactly what your host
-reports, and do not translate or normalise it: the vendor writes the rule
+reports, and do not translate or normalize it: the vendor writes the rule
 against that same string.
 
 ### Severity and type

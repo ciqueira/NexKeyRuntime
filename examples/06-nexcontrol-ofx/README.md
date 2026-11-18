@@ -26,7 +26,7 @@ NexControl operates on an asynchronous Client-Hub architecture:
 4. **Active Node Focus Anchor**:
    The string parameter `instance_info` placed inside the `grpNexControl` group acts as an in-process focus anchor for DaVinci Resolve's Inspector.
 5. **Multi-Plugin Node Isolation**:
-   Instance identifiers are allocated via process-scoped shared memory (`/nexcontrol_seq_<PID>`), avoiding parameter collisions across distinct plugins on the timeline.
+   Instance identifiers are isolated at process scope, avoiding parameter collisions across distinct plugins on the timeline.
 
 ---
 

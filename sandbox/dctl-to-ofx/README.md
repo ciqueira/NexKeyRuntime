@@ -24,16 +24,16 @@ sandbox/dctl-to-ofx/
 
 ### The 4 Sandbox Guarantees
 1. **Zero C++ Compilation for Creators**: The colorist writes only standard DCTL math (`transform()`) and UI definitions (`DEFINE_UI_PARAMS`).
-2. **Immutable Universal Runners**: `NexDCTLRunner.ofx` contains no hardcoded shaders. Shaders are encrypted into `payload.nexasset` and dynamically compiled on GPU at instance creation.
-3. **Hardware Acceleration**: Metal on macOS (with automatic fallback to OS JIT compiler if Command Line Tools are absent) and OpenCL on Windows via the GPU video driver.
+2. **Immutable Universal Runners**: `NexDCTLRunner.ofx` contains no hardcoded shaders. Shaders are sealed inside `payload.nexasset` and compiled at instance load time.
+3. **Hardware Acceleration**: Metal on macOS and OpenCL on Windows via the host GPU.
 4. **Deterministic Sandbox Isolation**: Tenant locked to `mcnexus-sandbox` with pre-embedded test keys.
 
 ### Asset Vault Protection
 
 The DCTL-to-OFX pipeline is protected by the **NexKeyRuntime Asset Vault**:
 
-- **Authenticated Encryption**: Shaders, 3D LUT tables, and UI manifests are packaged into an encrypted container (`payload.nexasset`) using AES-256-GCM.
-- **In-Memory GPU Pipeline**: Shaders and 3D LUTs are loaded directly into the GPU driver at startup without writing unencrypted files to disk.
+- **Authenticated Encryption & Signing**: Shaders, 3D LUT tables, and UI manifests are sealed in an encrypted, signed container (`payload.nexasset`).
+- **In-Memory Loading**: Verified payloads are unpacked in volatile memory at load time without writing unencrypted shader sources to disk.
 - **License Enforcement**: Container decryption requires a verified NexKey license or an active sandbox certificate.
 
 ---

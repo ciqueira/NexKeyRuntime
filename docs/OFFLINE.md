@@ -14,7 +14,7 @@ The exchange is three files and one round trip by whatever means the user
 has: a shared folder, a USB stick, an email to support.
 
 ```text
-    machine that needs a licence            whoever administers it
+    machine that needs a license            whoever administers it
     ────────────────────────────            ──────────────────────
     export_activation_request(path)  ──►    request file
                                             (issues a certificate)
@@ -26,18 +26,17 @@ has: a shared folder, a USB stick, an email to support.
                                             (releases the seat)
 ```
 
-## Asking for a licence
+## Asking for a license
 
 ```c
 nexkeyruntime_license_set_license_key(g_license, user_entered_key); /* optional */
 nexkeyruntime_license_export_activation_request(g_license, "/path/to/request.json");
 ```
 
-Writes a small JSON file identifying this machine: which tenant, which
-entitlement, this machine's binding, and a short prefix of the license key if
-one has been entered. **It contains no secret.** The binding is derived from
-the machine, not the machine's hardware identifiers themselves, and the file
-is not signed, as this machine holds no key to sign with.
+Writes a small JSON request file identifying this machine: which tenant, which
+entitlement, this machine's derived binding, and a short prefix of the license key if
+one has been entered. **It contains no secret** and never includes raw hardware
+identifiers.
 
 The license key is optional here, unlike online activation. Exporting a
 request for a machine where the user has not typed a key yet is a real case:
@@ -68,14 +67,13 @@ On success the receipt is on disk and `render_decision` answers `ALLOW`.
 nexkeyruntime_license_export_deactivation_proof(g_license, "/path/to/proof.json");
 ```
 
-This stops the licence working on this machine **and then** writes the proof.
-The order is deliberate and not configurable: the local receipts are deleted
+This stops the license working on this machine **and then** writes the proof.
+The order is deliberate and not configurable: the local receipts are cleared
 first, so by the time the proof exists the machine has already stopped
 rendering.
 
-That ordering is what makes the file trustworthy without a signature. Forging
-it gains the forger nothing, because their own copy stopped working before
-the file existed. Whoever receives it releases the seat on that basis.
+Forward the generated file unmodified to whoever administers the license so the
+seat can be released cleanly.
 
 Returns `NEXKEYRUNTIME_E_NO_RECEIPT` when there was nothing to give up.
 
@@ -84,7 +82,7 @@ fresh request/certificate round trip.
 
 ## What to tell your users
 
-Offline licences still expire, and they still carry an offline window. A
+Offline licenses still expire, and they still carry an offline window. A
 machine that never reaches the network is relying entirely on the validity
 baked into its certificate, so the practical question for an air-gapped site
 is how long that window is: arrange it with your vendor before the machine

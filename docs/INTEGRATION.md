@@ -101,7 +101,7 @@ static void on_license(NexKeyRuntimeLicenseStatus status, void *user_data) {
 nexkeyruntime_license_set_callback(g_license, on_license, NULL);
 ```
 
-Two behaviours worth knowing, because they are deliberate:
+Two behaviors worth knowing, because they are deliberate:
 
 - **A headless process does not sync.** A render node opening the same project
   on 200 machines will not produce 200 requests; each one decides offline from

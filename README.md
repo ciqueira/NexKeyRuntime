@@ -1,6 +1,6 @@
 # NexKeyRuntime
 
-NexKeyRuntime is a native C/C++14 SDK for update discovery, product notices,
+NexKeyRuntime is a native C/C++ SDK for update discovery, product notices,
 offline license verification, and real-time MIDI hardware control (NexControl)
 in desktop plugins and applications backed by Nexus.
 

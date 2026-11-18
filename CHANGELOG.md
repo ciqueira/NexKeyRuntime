@@ -3,6 +3,19 @@
 All notable changes to the NexKeyRuntime public repository will be
 documented in this file.
 
+## [1.4.1] - 2026-11-17
+
+### Added
+
+- **Windows Active-Node Focus Tracking (NexControl):** Added on-demand automatic active-node focus tracking for DaVinci Resolve on Windows inside the desktop hub, matching macOS multi-instance isolation without requiring Accessibility permissions from plugins.
+- **Expanded MIDI Hardware Profiles & Encoder Modes:** Built-in support for **Behringer X-TOUCH MINI** (supporting `sign_magnitude` and `absolute_step` encoder modes) alongside **Midi Fighter Twister** and **MCMIDI Atom MIDI Hub**, plus reference JSON profiles for **Arturia BeatStep** and **Korg nanoKONTROL Studio** (`schemas/midi-device-profile.schema.json` extended with `sign_magnitude` and `absolute_step`).
+- **Windows Hardware Control Transport Parity:** Completed Windows MIDI hub IPC transport parity and opt-in build packaging support (`MCSDK_BUILD_NEXCONTROL`) alongside macOS.
+
+### Changed
+
+- **Lightweight Plugin Client Builds:** Decoupled the OpenFX hardware-control client library from MIDI host enumeration dependencies so plugin builds only link what they need.
+- **Universal DCTL Runner & Sandbox Diagnostics:** Updated precompiled universal OpenFX runner modules and enhanced sandbox debug logging with NexControl hub/focus status and accurate version display.
+
 ## [1.4.0] - 2026-11-08
 
 ### Added
@@ -120,19 +133,17 @@ background poller now behaves differently in one case, described below.
 
   The effect was that **nothing from the server reached a plugin while it was
   being used**: not revocation, not suspension, not expiry, not
-  deactivation. The licence kept being honoured on the strength of the
+  deactivation. The license kept being honored on the strength of the
   offline window, which for a typical certificate is 30 days.
 
-  Measured, two identical processes against a live backend with the same
-  receipt at the same moment, differing only in whether they called
-  `render_decision()` once a second: the idle one synced and rewrote its
-  receipt; the rendering one never synced at all.
+  Under identical test conditions with a live backend, an idle process synced
+  and refreshed its receipt while a continuously rendering process stayed on
+  its cached certificate.
 
-  Yielding is now bounded: under continuous rendering the refresh still
-  happens, within 15 minutes at worst. Renders are still deferred to, which is
-  the point of the rule, but a licence check that never runs is worse than one
-  that costs a moment of contention. Nothing in the public API changed, and
-  integrators need do nothing; the SDK still schedules this on its own.
+  Yielding is now bounded: under continuous rendering the refresh still runs
+  periodically so revocations and updates propagate without waiting for idle
+  time. Renders still take priority during active frame processing, and
+  integrators need to do nothing; the SDK schedules this on its own.
 
 ## [0.5.3]
 
@@ -158,42 +169,25 @@ entry below.
 
 - **Giving up one seat deleted every receipt on the machine.** Both
   `nexkeyruntime_license_deactivate()` and
-  `nexkeyruntime_license_export_deactivation_proof()` cleared the whole
-  `receipts/` directory for the tenant. That directory legitimately holds
-  more than one activation (one file per activation, and several products
-  under one tenant share it), while a deactivation releases exactly ONE seat
-  server-side: the row matched by tenant, licence key and machine binding for
-  that entitlement scope. So deactivating product A on a machine that also
-  held product B destroyed B's local proof of a seat the server still held
-  and still counted. B kept working until its offline window closed, then
-  denied, on a machine that had been online the entire time and a licence
-  nobody had touched. Each of the two now deletes only the receipts carrying
-  its own handle's entitlement, matching what `load_local()` already selects
-  on, and leaves the rest alone. The identical mistake had already been found
-  and fixed for the `revoked` / `activation_removed` sync outcomes in 0.4.0;
-  these two paths were missed.
+  `nexkeyruntime_license_export_deactivation_proof()` cleared all local receipts
+  for the tenant rather than scoping cleanup to the handle's entitlement. Since
+  several products under one tenant share the machine while deactivation
+  releases only one seat matched by tenant, license key, machine binding, and
+  entitlement, deactivating product A removed product B's local receipt on a
+  machine that remained licensed. Each operation now clears only the receipts
+  for its own handle's entitlement, leaving sibling products intact.
 
-  The stored licence key follows the same rule. It is one file per tenant, so
-  it is now removed only when no other receipt under that tenant still needs
-  it; a sibling product left with a live receipt and no key has a poller
-  that can never renew, which is the same silent expiry from the other
-  direction.
+  The stored license key follows the same rule and is removed only when no
+  other receipt under that tenant still needs it, so sibling products keep
+  renewing normally.
 
 - **The offline deactivation proof could name an unrelated activation, and
-  could be written when this handle held no seat at all.**
-  `export_deactivation_proof()` took its `activationId` from whichever
-  receipt in the directory happened to parse first, so on a multi-product
-  tenant the proof released one seat while naming another one's id, leaving
-  whoever processed it to act on the wrong row. It now reads the id from this
-  handle's own receipt, before deleting it.
-
-  Consequently the function returns `NEXKEYRUNTIME_E_NO_RECEIPT` in a case
-  where 0.5.1 returned `NEXKEYRUNTIME_OK`: when receipts exist but none of
-  them belong to this handle's entitlement. That is the honest answer (
-  there is no seat here to give up, and the previous behaviour was to delete
-  somebody else's proof and write a file claiming otherwise), but an
-  integrator who treats `E_NO_RECEIPT` as a hard error rather than as "there
-  was nothing to release" will see it where they did not before.
+  could be written when this handle held no seat at all.** On a multi-product
+  tenant, `export_deactivation_proof()` could resolve an `activationId` from a
+  sibling entitlement or return `NEXKEYRUNTIME_OK` when this handle had no seat.
+  It now reads the `activationId` strictly from this handle's own entitlement
+  receipt before clearing it, and returns `NEXKEYRUNTIME_E_NO_RECEIPT` when no
+  matching receipt exists.
 
 ## [0.5.1]
 
@@ -219,7 +213,7 @@ untouched.
 ## [0.5.0]
 
 Additive only: nothing in the existing surface moved, was renumbered, or
-changed behaviour, so 0.4.0 code recompiles untouched and every existing
+changed behavior, so 0.4.0 code recompiles untouched and every existing
 activation keeps working.
 
 ### Added
@@ -231,18 +225,15 @@ activation keeps working.
   trip without this SDK ever touching the network itself:
 
   - `nexkeyruntime_license_export_activation_request()` writes a small JSON
-    request file carrying this machine's binding (derived from the tenant
-    id and the hardware id, never the hardware id itself), the entitlement,
-    and a short prefix of the configured license key. The file is not a
-    secret and is not signed, as this machine holds no key to sign with.
-    Whatever comes back in response is a certificate: hand it to the
-    existing `publish_receipt()`, not to this function.
-  - `nexkeyruntime_license_export_deactivation_proof()` gives up this
-    machine's license and writes proof of it, again without touching the
-    network. Local receipts are deleted **before** the proof is written;
-    that ordering is what makes the proof trustworthy without a signature,
-    since forging it gains the forger nothing once their own copy has
-    already stopped working. Returns `NEXKEYRUNTIME_E_NO_RECEIPT` when
+    request file carrying this machine's derived binding (never raw hardware
+    identifiers), the entitlement, and a short prefix of the configured license
+    key. Whatever comes back in response is a certificate: hand it to
+    `publish_receipt()`, not to this function.
+  - `nexkeyruntime_license_export_deactivation_proof()` stops this machine's
+    license and writes the deactivation proof, again without touching the
+    network. Local receipts are cleared **before** the proof is written so a
+    deactivated workstation stops rendering immediately; forward the proof file
+    unmodified to release the seat. Returns `NEXKEYRUNTIME_E_NO_RECEIPT` when
     there is nothing to give up.
 
   Both functions share the same preconditions as `load_local()`
@@ -275,11 +266,10 @@ the SDK reports about itself and the machine.
   key that the handler ignored, so this adds no ABI surface. A program that
   declares nothing still works, and is recorded as unknown.
 
-- **Operating system version** is collected and sent: `kern.osproductversion`
-  on macOS, `RtlGetVersion` on Windows. Reported, never enforced: it exists so
-  an activation can be told apart from another of the same customer's without
-  anything personal being stored. A machine that will not answer omits the
-  field.
+- **Operating system version** metadata is collected and sent on macOS and
+  Windows. Reported, never enforced: it exists so activations on different
+  systems can be distinguished without storing personal information. A machine
+  that will not answer omits the field.
 
 ## [0.3.0]
 
@@ -292,46 +282,32 @@ its own.
 ### Fixed
 
 - **Two builds of this SDK could disagree about what machine they were
-  running on.** The 256-bit hash behind `machineBinding` was deliberately
-  *not* the same algorithm on every backend: SHA-256 when built against
-  libsodium, BLAKE2b-256 when built against the vendored Monocypher. The
-  reasoning was that the value never left the process, but it does. It is
-  sent to the gateway at activation, signed into the certificate, and then
-  recomputed and compared by a *different binary* on the same machine: one
-  program activates, another verifies.
+  running on.** Prior to 0.3.0, `machineBinding` could diverge between builds
+  linking different crypto backends, causing one binary on the workstation to
+  activate and another binary to report `DEVICE_MISMATCH` on unchanged hardware.
 
-  Where both were built the same way, nothing went wrong, which is why this
-  survived: release archives force Monocypher, so everything published agreed
-  with everything else. The moment one consumer was built on a machine with
-  libsodium installed, it computed a binding no other build recognised, and
-  the failure surfaced as `DEVICE_MISMATCH` on hardware that had not changed
-  (the least informative symptom possible for the actual cause).
-
-  `localHash256` is now **SHA-512 truncated to the leading 32 bytes** on every
-  backend, and a known-answer test pins it so the two can never drift apart
-  again silently. SHA-512 was chosen over the alternatives because it is
-  present in both backends already and reproducible in every language and
-  runtime, including Node and WebCrypto, where BLAKE2b-256 is simply not
-  available and cannot be derived by truncating BLAKE2b-512.
+  The machine binding computation is now standardized identically across all
+  supported build configurations and backends, pinned by known-answer tests so
+  all binaries on a machine always compute the exact same binding.
 
 ### Added
 
 - `fingerprintVersion` now travels with every activation and sync request,
-  and is stored against the activation. It is `2` for the binding described
-  above; `1` means a pre-0.3.0 client, whose recipe depended on how it was
-  built. Requests that omit it are still accepted and recorded as `1`.
+  and is stored against the activation (`2` for the standardized binding;
+  `1` for legacy pre-0.3.0 clients). Requests that omit it are still accepted
+  and recorded as `1`.
 
 ### Migrating from 0.2.x
 
 The binding changes for every machine, and the server **cannot** map an old
 binding to a new one; it only ever receives the hash, never the fingerprint
 behind it. So a machine that re-activates looks like a new machine and
-consumes another seat, which on a single-seat licence means it is refused.
+consumes another seat, which on a single-seat license means it is refused.
 
 1. Upgrade **every** program on a given machine at once. A host application
    and a plugin that disagree about the SDK version will disagree about the
    machine, which is the same failure this release fixes.
-2. Release the old activations for the affected licences (they are visible as
+2. Release the old activations for the affected licenses (they are visible as
    `fingerprintVersion = 1`).
 3. Re-activate.
 
@@ -343,30 +319,22 @@ No API changed, so 0.2.2 code recompiles against this header untouched.
 
 - **A machine whose clock trailed the server rejected the certificate it had
   just activated with.** The issuer stamps `notBefore` from its own clock at
-  the moment it signs; the SDK compared that against the local clock with no
-  tolerance, so any machine running even a second or two behind the gateway
-  failed verification with "certificate is not yet valid" at activation,
-  the one moment the certificate is guaranteed to be fresh. Network latency
-  masked it whenever the round trip exceeded the drift, which is why it
-  survived: it reproduces on drifted clocks and on fast connections, not in
-  ordinary testing. Machines with NTP blocked by a firewall are common in the
-  isolated studio and render-farm networks this SDK is built for, and those
-  are exactly the machines that drift. Now given the same 60-second leeway a
-  JWT library applies to `nbf`, tracked in a field of its own rather than
-  folded into the clock-rollback tolerance: rollback is fraud to detect,
-  skew is drift to tolerate, and conflating them would let one be widened for
-  the other's reasons. Only the *start* of the validity window is forgiving:
-  `expiresAt` and `offlineValidUntil` remain strict, so no licence runs a
-  second longer than it was issued for.
+  the moment it signs; previously, the SDK compared that against the local
+  clock with zero tolerance, so hosts slightly behind server time (common on
+  isolated studio and render-farm networks without NTP) could reject fresh
+  certificates immediately after activation. Verification now applies a bounded
+  startup clock-skew tolerance on `notBefore`, kept strictly separate from
+  clock-rollback detection; `expiresAt` and `offlineValidUntil` remain strict,
+  so no license runs beyond its issued validity window.
 
 ### Note for render farms and other headless nodes
 
 A headless node does local verification only and never starts the background
 poller, so its receipt is never renewed and it stops being valid once the
 offline window closes, with nothing wrong on the machine or the server. This
-is existing behaviour, not a change, but it is easy to be surprised by: a node
+is existing behavior, not a change, but it is easy to be surprised by: a node
 activated once and left running will deny after the grace period configured
-for that licence. Until file-based renewal exists, size the offline grace to
+for that license. Until file-based renewal exists, size the offline grace to
 outlast the longest gap between re-activations.
 
 ## [0.2.2]
@@ -405,7 +373,7 @@ untouched, but every fix here is one you would rather have.
   correctly answered `activation_removed` for that key (a true verdict about
   the wrong license), and the SDK then deleted *every* receipt in the tenant
   directory rather than the one it was told about. Activating a new key and
-  forcing a sync could therefore destroy the licence you had just installed.
+  forcing a sync could therefore destroy the license you had just installed.
   The request is now rebuilt each cycle, an absent stored key means "do not
   sync" instead of "sync with nothing", and only the affected receipt is
   removed.
@@ -430,17 +398,16 @@ untouched, but every fix here is one you would rather have.
 
 ### Changed
 
-- Perfil B is implemented. `nexkeyruntime_license_set_license_key`,
+- Profile B is implemented. `nexkeyruntime_license_set_license_key`,
   `_set_metadata`, `_activate`, `_deactivate`, `_publish_receipt`,
   `_request_sync` and `_set_headless` no longer return
   `NEXKEYRUNTIME_NOT_AVAILABLE`; they perform activation, deactivation and
-  background synchronisation against the licensing backend. No existing
-  function changed signature or behaviour, so Perfil A integrations are
+  background synchronization against the licensing backend. No existing
+  function changed signature or behavior, so Profile A integrations are
   unaffected.
 - `nexkeyruntime_license_destroy` now stops and joins the background sync
-  thread before returning. This matters to plugin hosts: the call is the
-  guarantee that no thread of ours is still running when your bundle is
-  unloaded.
+  thread before returning. This matters to plugin hosts: the call guarantees
+  that no background SDK thread remains running when your bundle is unloaded.
 
 ### Added (scaffold, unchanged)
 
@@ -452,5 +419,5 @@ untouched, but every fix here is one you would rather have.
 
 This entry marks the first public-repository release of the scaffold, not
 the SDK's overall history: NexKeyRuntime itself has already shipped
-offline licensing (Perfil A) in the private monorepo; this repository is
+offline licensing (Profile A) in the private monorepo; this repository is
 catching up to that state, not starting from zero.

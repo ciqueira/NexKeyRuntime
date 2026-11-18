@@ -45,7 +45,7 @@ Convert any standard DaVinci Resolve DCTL script into a loaded OFX bundle for te
 ```
 
 ### Production Mode (Commercial Licensing & Asset Vault Protection)
-Pack encrypted, tamper-proof payloads bound to your product credentials using the NexKeyRuntime Asset Vault (AES-256-GCM):
+Pack encrypted, signed payloads bound to your product credentials using the NexKeyRuntime Asset Vault:
 ```bash
 # 1. Generate cryptographic keys:
 ./nexkeyctl generate-asset-keys --product-id=com.studio.look --output=./keys

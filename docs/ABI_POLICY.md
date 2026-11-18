@@ -1,6 +1,6 @@
 # ABI policy
 
-NexKeyRuntime is a C ABI, C++14-implemented static library. This document
+NexKeyRuntime is a C ABI static library (compiled with C++17) with pure C/C++ public headers. This document
 describes the compatibility guarantees the header already encodes today:
 it adds no new function or type; it makes the existing conventions
 explicit for integrators who need to reason about upgrade safety.

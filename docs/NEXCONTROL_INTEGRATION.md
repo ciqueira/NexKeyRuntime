@@ -11,23 +11,23 @@ NexControl is designed for **Zero Configuration for Colorists** and **Minimal Fr
 ```mermaid
 flowchart LR
     A["MIDI Hardware<br/>(e.g. Midi Fighter Twister)"] -->|"USB / Bluetooth"| B["MCNexus Desktop App<br/>(NexControlHub)"]
-    B -->|"IPC Socket / Named Pipe (0x4E43)"| C["OpenFX Plugin<br/>(NexControl Client)"]
+    B -->|"Local IPC (Socket / Named Pipe)"| C["OpenFX Plugin<br/>(NexControl Client)"]
     C -->|"Parameter Mutations (Main Thread)"| D["DaVinci Resolve<br/>(Inspector / Node Graph)"]
-    C -->|"In-Process Focus Detection"| D
+    B & C -->|"Active-Node Focus Tracking"| D
     C -->|"In-Process Viewer Refresh"| D
-    C -->|"NEXCONTROL_OP_SET_ACTIVE"| B
+    C -->|"Active Node Signal"| B
 ```
 
 ### Core Features
 
 1. **Hardware Connection & Transport**:
-   The plugin does not link MIDI drivers or manage device connections. The background desktop service (**[MCNexus](https://github.com/ciqueira/MCNexus)** / `NexControlHub`) enumerates physical controllers via `libremidi` and transmits relative deltas over low-latency binary IPC (Unix Domain Sockets on macOS, Named Pipes on Windows).
+   The plugin does not link MIDI drivers or manage device connections. The background desktop service (**[MCNexus](https://github.com/ciqueira/MCNexus)** / `NexControlHub`) handles physical controller enumeration and transmits relative deltas over low-latency binary IPC (Unix Domain Sockets on macOS, Named Pipes on Windows).
 2. **3-Tier Hardware Profile Abstraction**:
-   - **Tier 1 (Custom Profiles)**: User-defined JSON files placed in `~/Library/Application Support/MCNexus/profiles/` (macOS) or `%APPDATA%\MCNexus\profiles\` (Windows) validated against `schemas/midi-device-profile.schema.json`, with live hot-reloading.
-   - **Tier 2 (Factory Certified)**: Native built-in support for devices such as **Midi Fighter Twister** (4 banks, 64 encoders via Binary Offset 64, click push reset on CC 0..15 value 127).
+   - **Tier 1 (Custom Profiles)**: User-defined JSON files placed in `~/Library/Application Support/MCNexus/profiles/` (macOS) or `%APPDATA%\MCNexus\profiles\` (Windows) validated against `schemas/midi-device-profile.schema.json`, with live hot-reloading (including reference templates for devices like **Arturia BeatStep** and **Korg nanoKONTROL Studio**).
+   - **Tier 2 (Factory Certified)**: Native built-in support for **Midi Fighter Twister** (4 banks, 64 encoders via `binary_offset_64`), **MCMIDI Atom MIDI Hub** (`twos_complement`), and **Behringer X-TOUCH MINI** (`sign_magnitude` MC Mode and `absolute_step` Standard Mode).
    - **Tier 3 (Universal Generic Fallback)**: 1:1 CC fallback filtering reserved MIDI CCs (0, 32, 120..127).
-3. **In-Process Active Node Tracking**:
-   The active node is tracked **in-process** directly within DaVinci Resolve's memory via UI event hooks. **Zero Accessibility permissions required and zero cross-process polling.** Only the node currently focused in the Inspector receives mutations; all inactive nodes remain silent.
+3. **Automatic Active Node Tracking (macOS & Windows)**:
+   Only the node currently focused in DaVinci Resolve's Inspector receives knob turns; inactive nodes remain silent, with **zero OS Accessibility permission prompts required** and zero blocking on plugin render threads.
 4. **Multi-Plugin Node Isolation**:
    Instance IDs are automatically managed with process-level isolation. Multiple distinct OFX plugins (such as creative grading tools and custom DCTL runners) running on the same timeline receive unique instance identifiers, preventing cross-plugin parameter conflicts.
 5. **In-SDK Timeline Viewer Refresh**:
@@ -104,7 +104,7 @@ void MyPluginFactory::describeInContext(OFX::ImageEffectDescriptor &p_Desc,
 ```
 
 > [!CAUTION]
-> Never set `instParam->setIsSecret(true)`. If marked secret, DaVinci Resolve will not instantiate the UI widget in the Inspector, preventing the in-process tracker from detecting focus and silencing MIDI events for this node.
+> Never set `instParam->setIsSecret(true)`. If marked secret, DaVinci Resolve omits the parameter from the active Inspector view, preventing automatic focus tracking from routing MIDI events to this node.
 
 ---
 
@@ -170,4 +170,4 @@ Users or manufacturers can create custom profiles in:
 - macOS: `~/Library/Application Support/MCNexus/profiles/<model>.json`
 - Windows: `%APPDATA%\MCNexus\profiles\<model>.json`
 
-Profiles configure encoder modes (`twos_complement`, `binary_offset_64`), CC ranges, MIDI channels, banks, and push switch actions without requiring plugin recompilation.
+Profiles configure encoder modes (`twos_complement`, `binary_offset_64`, `sign_magnitude`, `absolute_step`), CC ranges, MIDI channels, banks, and push switch actions without requiring plugin recompilation.
