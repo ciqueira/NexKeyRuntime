@@ -14,7 +14,7 @@ All commands below assume your working directory is the **repository root** (`Ne
 | :--- | :--- | :--- |
 | **Tenant ID** | `mcnexus-sandbox` | The test tenant identifier for developer onboarding. |
 | **SDK Gateway** | `https://sdk-sandbox.mcnexus.app` | Issues Ed25519-signed activation certificates and manifests. |
-| **Default Entitlement** | `default` | Base variant slug for SDK plugins and applications. |
+| **Default Entitlement** | `download:default` | Base variant slug for SDK plugins and applications. |
 | **Keyring Key ID** | `mcnexus-sandbox-sandbox-2026-10` | Active Ed25519 signing key for this sandbox period. |
 | **ProductData File** | `sandbox/mcnexus-sandbox.nexkeydat` | Base64-signed trust envelope containing public keyring and gateway URL. |
 

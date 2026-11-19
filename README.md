@@ -61,7 +61,7 @@ void pluginLoad(void) {
     g_license = nexkeyruntime_license_create();
     nexkeyruntime_license_set_product_data(g_license, NEXKEYRUNTIME_PRODUCT_DATA);
     nexkeyruntime_license_set_tenant_id(g_license, "mcnexus-sandbox");
-    nexkeyruntime_license_set_variant(g_license, "default");
+    nexkeyruntime_license_set_variant(g_license, "download:default");
     nexkeyruntime_license_load_local(g_license);
 }
 

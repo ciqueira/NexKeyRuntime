@@ -76,7 +76,7 @@ enum class ReceiptEdition { Full, Demo, Trial, Beta, Unknown };
 #endif
 
 #ifndef MC_NEXKEY_VARIANT
-#define MC_NEXKEY_VARIANT "default"
+#define MC_NEXKEY_VARIANT "download:default"
 #endif
 
 #ifndef MC_NEXKEY_PRODUCT
@@ -204,22 +204,19 @@ inline const char *statusName(NexKeyRuntimeLicenseStatus status) {
 
 inline std::string receiptsDirectory() {
 #if defined(_WIN32)
-#if defined(MC_NEXKEY_SCOPE) && (MC_NEXKEY_SCOPE == NEXKEYRUNTIME_SCOPE_SYSTEM)
-  const char *base = std::getenv("PROGRAMDATA");
-#else
-  const char *base = std::getenv("LOCALAPPDATA");
-#endif
+  const char *base = (MC_NEXKEY_SCOPE == NEXKEYRUNTIME_SCOPE_SYSTEM)
+                         ? std::getenv("PROGRAMDATA")
+                         : std::getenv("LOCALAPPDATA");
   if (!base || base[0] == '\0') return std::string();
   return std::string(base) + "\\NexKeyRuntime\\" MC_NEXKEY_TENANT "\\receipts";
 #else
-#if defined(MC_NEXKEY_SCOPE) && (MC_NEXKEY_SCOPE == NEXKEYRUNTIME_SCOPE_SYSTEM)
-  return "/Library/Application Support/NexKeyRuntime/" MC_NEXKEY_TENANT "/receipts";
-#else
+  if (MC_NEXKEY_SCOPE == NEXKEYRUNTIME_SCOPE_SYSTEM) {
+    return "/Library/Application Support/NexKeyRuntime/" MC_NEXKEY_TENANT "/receipts";
+  }
   const char *home = std::getenv("HOME");
   if (!home || home[0] == '\0') return std::string();
   return std::string(home) +
          "/Library/Application Support/NexKeyRuntime/" MC_NEXKEY_TENANT "/receipts";
-#endif
 #endif
 }
 

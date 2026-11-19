@@ -91,7 +91,7 @@ target_compile_definitions(NexKeySandboxPlugin PRIVATE
   MC_NEXKEY_ENABLED=1
   MC_NEXKEY_ENFORCE=1
   MC_NEXKEY_TENANT="mcnexus-sandbox"
-  MC_NEXKEY_VARIANT="default"
+  MC_NEXKEY_VARIANT="download:default"
   MC_NEXKEY_BASE_URL="https://sdk-sandbox.mcnexus.app"
   MC_NEXKEY_NOTICE_CHANNEL=1
   PLUGIN_VERSION="1.0.0"

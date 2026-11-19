@@ -13,7 +13,7 @@
 
 #define DEFAULT_TEST_KEY "B11C74-8A87F8-C8EA8A-6AE757-4A62D3-89FED38D"
 #define DEFAULT_TENANT "mcnexus-sandbox"
-#define DEFAULT_VARIANT "default"
+#define DEFAULT_VARIANT "download:default"
 
 static char *read_file_string(const char *path) {
     FILE *f = fopen(path, "rb");

@@ -20,7 +20,7 @@ target_compile_definitions(license-validator PRIVATE
   MC_NEXKEY_ENABLED=1
   MC_NEXKEY_ENFORCE=1
   MC_NEXKEY_TENANT="mcnexus-sandbox"
-  MC_NEXKEY_VARIANT="default"
+  MC_NEXKEY_VARIANT="download:default"
 )
 
 target_include_directories(license-validator PRIVATE
