@@ -22,6 +22,11 @@ flowchart LR
 
 1. **Hardware Connection & Transport**:
    The plugin does not link MIDI drivers or manage device connections. The background desktop service (**[MCNexus](https://github.com/ciqueira/MCNexus)** / `NexControlHub`) handles physical controller enumeration and transmits relative deltas over low-latency binary IPC (Unix Domain Sockets on macOS, Named Pipes on Windows).
+
+   > [!NOTE]
+   > Release packages ship two separate NexControl binaries:
+   > - **Plugin Client (`libnexcontrol.a` / `nexcontrol.lib`)**: Static library linked into your OpenFX plugin (`NexKeyRuntime::nexcontrol`).
+   > - **Desktop Hub (`libnexcontrol_hub.dylib` / `nexcontrol_hub.dll`)**: Shared library used by the MCNexus desktop hub (or custom desktop host applications via `nexcontrol/nexcontrol_hub.h`). OpenFX plugins do not link or redistribute `nexcontrol_hub`.
 2. **3-Tier Hardware Profile Abstraction**:
    - **Tier 1 (Custom Profiles)**: User-defined JSON files placed in `~/Library/Application Support/MCNexus/profiles/` (macOS) or `%APPDATA%\MCNexus\profiles\` (Windows) validated against `schemas/midi-device-profile.schema.json`, with live hot-reloading. Ready-to-use Tier 1 profiles are available for **Intech Studio EN16 + BU16**, **Intech Studio EN16 (Standalone)**, **Loupedeck** (manual mapping via Loupedeck MIDI Plugin), **Arturia BeatStep**, **Korg nanoKONTROL Studio**, and extended **Behringer X-TOUCH MINI** channel layouts.
    - **Tier 2 (Factory Certified)**: Native built-in support for **Midi Fighter Twister** (4 banks, 64 encoders via `binary_offset_64`), **MCMIDI Atom MIDI Hub** (`twos_complement`), and **Behringer X-TOUCH MINI** (`sign_magnitude` MC Mode and `absolute_step` Standard Mode).

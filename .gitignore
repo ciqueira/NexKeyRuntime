@@ -9,7 +9,8 @@ cmake-build-*/
 *.so
 *.ofx
 *.ofx.bundle
+/lib/
+/bin/
 dist/
 !sandbox/dctl-to-ofx/runners/**/NexDCTLRunner.ofx
 offline-request.json
-

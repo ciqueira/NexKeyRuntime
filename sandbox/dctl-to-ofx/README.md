@@ -4,6 +4,16 @@ The **DCTL-to-OFX Conversion Sandbox** is a dedicated evaluation testbed for pac
 
 This environment operates entirely offline using pre-provisioned sandbox credentials: no external network connection, account creation, or production keys are required.
 
+All CLI commands below assume your working directory is the **repository root** (`NexKeyRuntime/`) and `nexkeyctl` has been built via:
+```bash
+# macOS:
+cmake -S . -B build && cmake --build build -j8
+```
+```cmd
+cmake -S . -B build -A x64 && cmake --build build --config Release
+```
+*(On Windows, use `-A ARM64` instead of `-A x64` if your downloaded library is `windows-arm64.zip`; `-A` must match your release archive architecture.)*
+
 ---
 
 ## 1. Architecture & Precompiled Runners
@@ -18,8 +28,8 @@ sandbox/dctl-to-ofx/
 ├── examples/
 │   └── 01-exposure/                 # Basic exposure and gamma slider example
 └── scripts/
-    ├── package_sandbox.sh           # macOS packaging helper
-    └── package_sandbox.bat          # Windows drag-and-drop packaging helper
+    ├── package_sandbox.sh           # macOS packaging helper (outputs to <repo>/dist/)
+    └── package_sandbox.bat          # Windows drag-and-drop packaging helper (outputs to <repo>\dist\)
 ```
 
 ### The 4 Sandbox Guarantees
@@ -38,39 +48,36 @@ The DCTL-to-OFX pipeline is protected by the **NexKeyRuntime Asset Vault**:
 
 ---
 
-## 2. Developer Workflow (CLI)
+## 2. Developer Workflow (CLI from Repository Root)
 
-### Step 1: Package DCTL into an OpenFX Bundle
+### Step 1: Package DCTL into an OpenFX Bundle (`dist/`)
 
-Run `nexkeyctl package-dctl` with the `--sandbox` flag pointing to the precompiled runner for your platform:
+Run `package-dctl` with `--sandbox` from the repository root (`NexKeyRuntime/`). Packaged bundles are written to `dist/`:
 
 **macOS:**
 ```bash
-nexkeyctl package-dctl \
-  --input="examples/01-exposure/Exposure.dctl" \
+./build/bin/nexkeyctl package-dctl \
+  --input=sandbox/dctl-to-ofx/examples/01-exposure/Exposure.dctl \
   --name="Exposure Simple" \
-  --runner="runners/macos/NexDCTLRunner.ofx" \
-  --output="./dist" \
+  --runner=sandbox/dctl-to-ofx/runners/macos/NexDCTLRunner.ofx \
+  --output=dist \
   --sandbox
 ```
+*(In `--sandbox` mode, `--runner` and `--output=dist` can also be omitted — `nexkeyctl` auto-detects the platform runner and outputs to `dist/` by default.)*
 
-**Windows:**
+**Windows (PowerShell / CMD):**
 ```cmd
-nexkeyctl.exe package-dctl ^
-  --input="examples\01-exposure\Exposure.dctl" ^
-  --name="Exposure Simple" ^
-  --runner="runners\windows\NexDCTLRunner.ofx" ^
-  --output=".\dist" ^
-  --sandbox
+.\build\bin\Release\nexkeyctl.exe package-dctl --input=sandbox\dctl-to-ofx\examples\01-exposure\Exposure.dctl --name="Exposure Simple" --runner=sandbox\dctl-to-ofx\runners\windows\NexDCTLRunner.ofx --output=dist --sandbox
 ```
 
 #### Debug & Diagnostic Logging (`--debug`)
 To inspect shader compilation, macro preprocessing, and GPU kernel logs, append `--debug`:
 ```bash
-nexkeyctl package-dctl \
-  --input="examples/01-exposure/Exposure.dctl" \
-  --runner="runners/macos/NexDCTLRunner.ofx" \
-  --output="./dist" \
+./build/bin/nexkeyctl package-dctl \
+  --input=sandbox/dctl-to-ofx/examples/01-exposure/Exposure.dctl \
+  --name="Exposure Simple" \
+  --runner=sandbox/dctl-to-ofx/runners/macos/NexDCTLRunner.ofx \
+  --output=dist \
   --sandbox \
   --debug
 ```
@@ -81,15 +88,15 @@ nexkeyctl package-dctl \
 
 ### Step 2: Install Bundle into DaVinci Resolve
 
-Move the generated `.ofx.bundle` to the standard OpenFX directory:
+Move the generated `.ofx.bundle` from `dist/` to the standard OpenFX directory:
 
 * **macOS:**
   ```bash
-  sudo cp -R ./dist/ExposureSimple.ofx.bundle /Library/OFX/Plugins/
+  sudo cp -R dist/ExposureSimple.ofx.bundle /Library/OFX/Plugins/
   ```
 * **Windows (PowerShell as Admin):**
   ```powershell
-  Copy-Item -Recurse .\dist\ExposureSimple.ofx.bundle "C:\Program Files\Common Files\OFX\Plugins\"
+  Copy-Item -Recurse dist\ExposureSimple.ofx.bundle "C:\Program Files\Common Files\OFX\Plugins\"
   ```
 
 ---
@@ -101,13 +108,14 @@ Move the generated `.ofx.bundle` to the standard OpenFX directory:
    - Without an active sandbox license key, the runner displays a procedural test watermark while maintaining full interactive controls.
 
 2. **Full Mode (Watermark Removed):**
-   - Activate the pre-provisioned Sandbox Full Commercial test key:
+   - Activate the pre-provisioned Sandbox Full Commercial test key from the repository root:
      ```bash
-     nexkeyctl --activate \
-       --key="B11C74-8A87F8-C8EA8A-6AE757-4A62D3-89FED38D" \
-       --tenant="mcnexus-sandbox" \
-       --product-file="../mcnexus-sandbox.nexkeydat"
+     ./build/bin/nexkeyctl --activate \
+       --key=B11C74-8A87F8-C8EA8A-6AE757-4A62D3-89FED38D \
+       --tenant=mcnexus-sandbox \
+       --product-file=sandbox/mcnexus-sandbox.nexkeydat
      ```
+     *(On Windows: `.\build\bin\Release\nexkeyctl.exe ...`)*
    - Reload or scrub the timeline in DaVinci Resolve: the watermark disappears and rendering is clean.
 
 ---
@@ -130,27 +138,25 @@ The packager automatically preprocesses standard DaVinci Resolve DCTL macros:
 
 ## 4. Helper Packaging Scripts (macOS & Windows)
 
-For rapid packaging without typing CLI flags, helper scripts are provided in `scripts/`:
+For rapid packaging without typing CLI flags, helper scripts automatically locate `build/bin/nexkeyctl`, use the platform runner, and write the `.ofx.bundle` directly into `<repo>/dist/`:
 
 * **macOS:**
   ```bash
-  ./scripts/package_sandbox.sh examples/01-exposure/Exposure.dctl
+  ./sandbox/dctl-to-ofx/scripts/package_sandbox.sh sandbox/dctl-to-ofx/examples/01-exposure/Exposure.dctl
   ```
-  *(Or double-click `package_sandbox.sh` in Finder and drag the `.dctl` file into the terminal prompt).*
+  *(Or double-click `package_sandbox.sh` in Finder and drag the `.dctl` file into the terminal prompt.)*
 
 * **Windows:**
   ```cmd
-  scripts\package_sandbox.bat examples\01-exposure\Exposure.dctl
+  sandbox\dctl-to-ofx\scripts\package_sandbox.bat sandbox\dctl-to-ofx\examples\01-exposure\Exposure.dctl
   ```
-  *(Or drag and drop your `.dctl` file directly onto `package_sandbox.bat` in Windows Explorer).*
-
-Both scripts automatically detect the local precompiled runner and assemble the `.ofx.bundle` into `dist/`.
+  *(Or drag and drop your `.dctl` file directly onto `package_sandbox.bat` in Windows Explorer.)*
 
 ---
 
 ## 5. Pre-Provisioned Test License Keys
 
-All keys below are pre-registered on the Sandbox authority (`../mcnexus-sandbox.nexkeydat`):
+All keys below are pre-registered on the Sandbox authority (`sandbox/mcnexus-sandbox.nexkeydat`):
 
 | Edition | Key String | Expected Host Behavior |
 | :--- | :--- | :--- |

@@ -1,19 +1,15 @@
 // nexkeyctl — activate, deactivate and inspect a NexKeyRuntime license from
 // the command line, in a process that is NOT the OFX host.
 //
-// It exists for P11. The question that item asks is not "does licensing
-// work" but something narrower and nastier: when one process writes the
-// receipt and a DIFFERENT process reads it from inside DaVinci Resolve, do
-// the two agree on where that file lives? A Resolve installed from the Mac
-// App Store runs sandboxed, and a sandboxed process's
-// ~/Library/Application Support is silently redirected into the app's own
-// container — so the receipt this tool writes would simply not be there
-// (§3.12). `--status` prints the RESOLVED path precisely so it can be
-// compared against the path the plugin reports from inside the host: two
-// different strings is the answer P11 is looking for.
+// When one process writes the receipt and a different process reads it from
+// inside DaVinci Resolve, a sandboxed host (such as Resolve from the Mac App
+// Store) redirects ~/Library/Application Support into its own container, so an
+// external activation would not be visible there. `--status` prints the
+// resolved path so it can be compared against the path the plugin reports from
+// inside the host.
 //
-// It is also, incidentally, a minimal stand-in for what MCNexus does — the
-// same Perfil B calls, in a separate process from the plugin.
+// It is also a minimal standalone client for the same Profile B calls in a
+// separate process from the plugin.
 //
 // --updates covers the OTHER handle, for a different reason: not that a second
 // process is needed, but to provide a standalone CLI runner for release discovery
@@ -40,6 +36,7 @@
 #include <sstream>
 #include <string>
 #include <thread>
+#include <vector>
 
 namespace {
 
@@ -50,7 +47,7 @@ namespace {
 // and does not say so can deactivate the wrong license and look like it
 // worked.
 #ifndef NEXKEYCTL_DEFAULT_TENANT
-#define NEXKEYCTL_DEFAULT_TENANT "colorequalizer-oss"
+#define NEXKEYCTL_DEFAULT_TENANT "mcnexus-sandbox"
 #endif
 
 const char *statusName(NexKeyRuntimeLicenseStatus status) {
@@ -105,11 +102,10 @@ const char *resultName(NexKeyRuntimeResult result) {
   return buffer;
 }
 
-// The same layout Paths.cpp builds, recomputed here rather than exposed by
-// the ABI. Deliberate: the SDK does not publish its storage location, and it
-// should not start doing so for a diagnostic. If these two ever disagree that
-// is itself worth knowing, which is why --status prints what it CHECKED as
-// well as what it found.
+// Recomputed here rather than exposed by the ABI. Deliberate: the SDK does
+// not publish its storage location, and it should not start doing so for a
+// diagnostic. If these two ever disagree that is itself worth knowing, which
+// is why --status prints what it checked as well as what it found.
 std::string receiptsDirectory(const std::string &tenantId) {
 #if defined(_WIN32)
   const char *base = std::getenv("LOCALAPPDATA");
@@ -132,10 +128,11 @@ std::string receiptsDirectory(const std::string &tenantId) {
 // matter which path was resolved. A sandboxed host would cheerfully create
 // its own redirected copy and look just as healthy.
 //
-// The signal for P11 is the PATH STRING plus this count: a plugin that
-// resolves a different path finds zero receipts there, while the tool that
-// wrote one still sees it at the original path. Two paths, two counts, and
-// the redirection is visible.
+// Counting receipts rather than only checking directory existence:
+// resolveTenantPaths(, NEXKEYRUNTIME_SCOPE_USER) creates the directory chain,
+// so a sandboxed host would create its own redirected directory and appear
+// healthy. Printing the path string together with this count makes container
+// redirection immediately visible.
 int receiptCount(const std::string &path) {
   if (path.empty()) return -1;
   std::error_code ec;
@@ -162,16 +159,6 @@ std::string readFileText(const std::string &path) {
   return text;
 }
 
-const char *argumentValue(int argc, char **argv, const char *name) {
-  const std::size_t length = std::strlen(name);
-  for (int i = 1; i < argc; ++i) {
-    if (std::strncmp(argv[i], name, length) == 0 && argv[i][length] == '=') {
-      return argv[i] + length + 1;
-    }
-  }
-  return nullptr;
-}
-
 const char *getArgValue(int argc, char **argv, const char *name) {
   const std::size_t length = std::strlen(name);
   for (int i = 1; i < argc; ++i) {
@@ -179,12 +166,45 @@ const char *getArgValue(int argc, char **argv, const char *name) {
       if (argv[i][length] == '=') {
         return argv[i] + length + 1;
       }
-      if (argv[i][length] == '\0' && i + 1 < argc) {
+      if (argv[i][length] == '\0' && i + 1 < argc &&
+          std::strncmp(argv[i + 1], "--", 2) != 0) {
         return argv[i + 1];
       }
     }
   }
   return nullptr;
+}
+
+std::string findRepoAsset(const char *argv0, const std::string &relativePath) {
+  std::error_code ec;
+  const std::filesystem::path rel(relativePath);
+  std::filesystem::path prefix;
+  for (int depth = 0; depth <= 3; ++depth) {
+    const std::filesystem::path candidate = prefix.empty() ? rel : (prefix / rel);
+    if (std::filesystem::is_regular_file(candidate, ec) && !ec) {
+      return candidate.string();
+    }
+    prefix /= "..";
+  }
+
+  if (argv0 && argv0[0] != '\0') {
+    std::filesystem::path exePath(argv0);
+    std::filesystem::path canonical = std::filesystem::weakly_canonical(exePath, ec);
+    if (!ec && !canonical.empty()) {
+      exePath = canonical;
+    }
+    std::filesystem::path dir = exePath.parent_path();
+    for (int depth = 0; depth <= 4 && !dir.empty(); ++depth) {
+      const std::filesystem::path candidate = dir / rel;
+      if (std::filesystem::is_regular_file(candidate, ec) && !ec) {
+        return candidate.string();
+      }
+      const std::filesystem::path parent = dir.parent_path();
+      if (parent == dir) break;
+      dir = parent;
+    }
+  }
+  return std::string();
 }
 
 std::vector<std::string> getMultiArgValues(int argc, char **argv, const char *name) {
@@ -317,8 +337,16 @@ int runPackageDctl(int argc, char **argv) {
   if (variant) opts.variant = variant;
   if (nexkeydat) opts.nexkeydatPath = nexkeydat;
   if (keys) opts.keysPath = keys;
-  opts.outputDir = (output && output[0] != '\0') ? output : ".";
-  if (runner) opts.runnerPath = runner;
+  opts.outputDir = (output && output[0] != '\0') ? output : "dist";
+  std::string resolvedRunner = (runner && runner[0] != '\0') ? runner : "";
+  if (resolvedRunner.empty() && sandbox) {
+#if defined(__APPLE__)
+    resolvedRunner = findRepoAsset(argv[0], "sandbox/dctl-to-ofx/runners/macos/NexDCTLRunner.ofx");
+#elif defined(_WIN32)
+    resolvedRunner = findRepoAsset(argv[0], "sandbox/dctl-to-ofx/runners/windows/NexDCTLRunner.ofx");
+#endif
+  }
+  if (!resolvedRunner.empty()) opts.runnerPath = resolvedRunner;
   if (dumpMsl) opts.dumpMslPath = dumpMsl;
   if (dumpOpencl) opts.dumpOpenclPath = dumpOpencl;
   opts.sandbox = sandbox;
@@ -336,6 +364,9 @@ int runPackageDctl(int argc, char **argv) {
   std::printf("  Product ID: %s\n", opts.productId.c_str());
   if (!opts.pluginName.empty()) {
     std::printf("  Name:       %s\n", opts.pluginName.c_str());
+  }
+  if (!opts.runnerPath.empty()) {
+    std::printf("  Runner:     %s\n", opts.runnerPath.c_str());
   }
   return 0;
 }
@@ -418,26 +449,25 @@ const char *defaultArchitecture() {
 // of the ABI against real gateway responses outside host plugins.
 //
 // No ProductData here, deliberately: the update handle does not take one.
-// Manifests are public and unsigned by design (SPEC_UPDATES_NOTICES.md) —
-// they say "0.1.2 exists", which is not a claim that needs a signature. The
-// certificate keyring belongs to the licensing handle, and keeping the two
-// apart is what lets a plugin ship updates without licensing, or the
-// reverse.
+// Manifests are public and unsigned by design — they say "0.1.2 exists",
+// which is not a claim that needs a signature. The certificate keyring belongs
+// to the licensing handle, and keeping the two apart is what lets a plugin
+// ship updates without licensing, or the reverse.
 int runUpdates(int argc, char **argv, const char *tenant,
                const char *tenantSource) {
   NexKeyRuntimeConfig config;
   nexkeyruntime_config_init(&config);
 
-  const char *artifact = argumentValue(argc, argv, "--artifact");
-  const char *platform = argumentValue(argc, argv, "--platform");
-  const char *architecture = argumentValue(argc, argv, "--architecture");
-  const char *channel = argumentValue(argc, argv, "--channel");
-  const char *currentVersion = argumentValue(argc, argv, "--current-version");
-  const char *baseUrl = argumentValue(argc, argv, "--base-url");
-  const char *locale = argumentValue(argc, argv, "--locale");
-  const char *hostName = argumentValue(argc, argv, "--host-name");
-  const char *hostVersion = argumentValue(argc, argv, "--host-version");
-  const char *timeoutText = argumentValue(argc, argv, "--timeout-ms");
+  const char *artifact = getArgValue(argc, argv, "--artifact");
+  const char *platform = getArgValue(argc, argv, "--platform");
+  const char *architecture = getArgValue(argc, argv, "--architecture");
+  const char *channel = getArgValue(argc, argv, "--channel");
+  const char *currentVersion = getArgValue(argc, argv, "--current-version");
+  const char *baseUrl = getArgValue(argc, argv, "--base-url");
+  const char *locale = getArgValue(argc, argv, "--locale");
+  const char *hostName = getArgValue(argc, argv, "--host-name");
+  const char *hostVersion = getArgValue(argc, argv, "--host-version");
+  const char *timeoutText = getArgValue(argc, argv, "--timeout-ms");
 
   if (!currentVersion || currentVersion[0] == '\0') {
     std::fprintf(stderr,
@@ -589,9 +619,7 @@ int runUpdates(int argc, char **argv, const char *tenant,
       std::printf("                  (in-memory only — gone on the next run)\n");
     }
   } else if (noticeResult == NEXKEYRUNTIME_NOT_AVAILABLE) {
-    // Not a failure. The fixture notice carries a narrow audience on
-    // purpose, so being filtered out is the expected answer for most
-    // invocations — see E2E_VALIDATION.md, I3.
+    // Not a failure: notices are filtered by host and version audience rules.
     std::printf("notice          : none for this audience\n");
   } else {
     std::printf("notice          : %s\n", resultName(noticeResult));
@@ -609,10 +637,12 @@ void usage() {
       "nexkeyctl %s — NexKeyRuntime license, update and DCTL asset control\n\n"
       "  nexkeyctl generate-asset-keys --product-id=ID [--output=DIR]\n"
       "  nexkeyctl package-dctl        --input=FILE.dctl [--sandbox] [--debug]\n"
+      "                                [--runner=RUNNER_PATH] [--output=DIR]\n"
+      "                                  (--sandbox auto-detects the platform runner; --output defaults to dist)\n"
       "                                [Production mode requires: --product-id=ID --keys=KEYS_FILE\n"
       "                                 --runner=RUNNER_PATH --nexkeydat=DAT_FILE --tenant=ID --variant=SLUG]\n"
       "                                [--name=NAME] [--bundle-name=NAME] [--group=GROUP] [--version=X.Y.Z]\n"
-      "                                [--output=DIR] [-I DIR] [--dump-msl=FILE] [--dump-opencl=FILE]\n\n"
+      "                                [-I DIR] [--dump-msl=FILE] [--dump-opencl=FILE]\n\n"
       "  nexkeyctl --activate       --key=KEY [--tenant=ID] [--product-file=PATH] [--variant=SLUG]\n"
       "  nexkeyctl --deactivate     [--tenant=ID] [--product-file=PATH]\n"
       "  nexkeyctl --status         [--tenant=ID] [--product-file=PATH]\n"
@@ -628,11 +658,12 @@ void usage() {
       "  --tenant        Defaults to $NEXKEYRUNTIME_TENANT, then \"%s\".\n"
       "                  Whichever is used is printed on every command.\n"
       "  --product-file  ProductData blob issued by the backoffice.\n"
-      "                  Defaults to $NEXKEYRUNTIME_PRODUCT_FILE.\n"
+      "                  Defaults to $NEXKEYRUNTIME_PRODUCT_FILE, then sandbox/mcnexus-sandbox.nexkeydat\n"
+      "                  when found inside the repository.\n"
       "  --variant       Entitlement to require (default: download:default).\n\n"
       "--status prints the receipt directory this process resolved. Compare it\n"
       "against the path the OFX plugin reports from inside the host: if they\n"
-      "differ, the host is sandboxed and redirecting storage (P11, §3.12).\n\n"
+      "differ, the host is sandboxed and redirecting storage.\n\n"
       "--export-request writes a JSON file identifying this machine (tenant,\n"
       "machineBinding, entitlement, a prefix of --key if given) so someone else\n"
       "can issue an activation certificate for it without this machine reaching\n"
@@ -689,7 +720,7 @@ int main(int argc, char **argv) {
     return 2;
   }
 
-  const char *tenant = argumentValue(argc, argv, "--tenant");
+  const char *tenant = getArgValue(argc, argv, "--tenant");
   const char *tenantSource = "--tenant";
   if (!tenant || tenant[0] == '\0') {
     tenant = std::getenv("NEXKEYRUNTIME_TENANT");
@@ -708,20 +739,39 @@ int main(int argc, char **argv) {
     return runUpdates(argc, argv, tenant, tenantSource);
   }
 
-  const char *productFile = argumentValue(argc, argv, "--product-file");
-  if (!productFile) productFile = std::getenv("NEXKEYRUNTIME_PRODUCT_FILE");
-  if (!productFile || productFile[0] == '\0') {
+  std::string resolvedProductFile;
+  const char *productFileSource = "--product-file";
+  if (const char *flagProductFile = getArgValue(argc, argv, "--product-file")) {
+    resolvedProductFile = flagProductFile;
+  }
+  if (resolvedProductFile.empty()) {
+    const char *envProductFile = std::getenv("NEXKEYRUNTIME_PRODUCT_FILE");
+    if (envProductFile && envProductFile[0] != '\0') {
+      resolvedProductFile = envProductFile;
+      productFileSource = "$NEXKEYRUNTIME_PRODUCT_FILE";
+    }
+  }
+  if (resolvedProductFile.empty()) {
+    resolvedProductFile = findRepoAsset(argv[0], "sandbox/mcnexus-sandbox.nexkeydat");
+    if (!resolvedProductFile.empty()) {
+      productFileSource = "auto-detected sandbox";
+    }
+  }
+  if (resolvedProductFile.empty()) {
     std::fprintf(stderr,
-                 "nexkeyctl: --product-file (or $NEXKEYRUNTIME_PRODUCT_FILE) is required\n");
+                 "nexkeyctl: could not locate ProductData. Pass --product-file=PATH, set "
+                 "$NEXKEYRUNTIME_PRODUCT_FILE, or run from the NexKeyRuntime repository "
+                 "(sandbox/mcnexus-sandbox.nexkeydat).\n");
     return 2;
   }
-  const std::string productData = readFileText(productFile);
+  const std::string productData = readFileText(resolvedProductFile);
   if (productData.empty()) {
-    std::fprintf(stderr, "nexkeyctl: could not read ProductData from %s\n", productFile);
+    std::fprintf(stderr, "nexkeyctl: could not read ProductData from %s\n",
+                 resolvedProductFile.c_str());
     return 2;
   }
 
-  const char *variant = argumentValue(argc, argv, "--variant");
+  const char *variant = getArgValue(argc, argv, "--variant");
 
   NexKeyRuntimeLicenseHandle *handle = nexkeyruntime_license_create();
   if (!handle) {
@@ -753,7 +803,7 @@ int main(int argc, char **argv) {
   NexKeyRuntimeResult result = NEXKEYRUNTIME_OK;
   std::string exportedRequestPath;
   if (activate) {
-    const char *key = argumentValue(argc, argv, "--key");
+    const char *key = getArgValue(argc, argv, "--key");
     if (!key || key[0] == '\0') {
       std::fprintf(stderr, "nexkeyctl: --activate needs --key=KEY\n");
       nexkeyruntime_license_destroy(handle);
@@ -764,14 +814,14 @@ int main(int argc, char **argv) {
   } else if (deactivate) {
     result = nexkeyruntime_license_deactivate(handle);
   } else if (sync) {
-    const char *key = argumentValue(argc, argv, "--key");
+    const char *key = getArgValue(argc, argv, "--key");
     if (key && key[0] != '\0') {
       nexkeyruntime_license_set_license_key(handle, key);
     }
     nexkeyruntime_license_load_local(handle);
     result = nexkeyruntime_license_request_sync(handle, 1);
   } else if (exportRequest) {
-    const char *outPath = argumentValue(argc, argv, "--out");
+    const char *outPath = getArgValue(argc, argv, "--out");
     if (!outPath || outPath[0] == '\0') {
       std::fprintf(stderr, "nexkeyctl: --export-request needs --out=PATH\n");
       nexkeyruntime_license_destroy(handle);
@@ -781,7 +831,7 @@ int main(int argc, char **argv) {
     // where no key has been entered yet is a real case (the operator asks
     // the customer for it separately), and an empty prefix is a valid,
     // honest answer, not an error.
-    const char *key = argumentValue(argc, argv, "--key");
+    const char *key = getArgValue(argc, argv, "--key");
     if (key && key[0] != '\0') {
       nexkeyruntime_license_set_license_key(handle, key);
     }
@@ -790,7 +840,7 @@ int main(int argc, char **argv) {
       exportedRequestPath = outPath;
     }
   } else if (exportDeactivation) {
-    const char *outPath = argumentValue(argc, argv, "--out");
+    const char *outPath = getArgValue(argc, argv, "--out");
     if (!outPath || outPath[0] == '\0') {
       std::fprintf(stderr, "nexkeyctl: --export-deactivation needs --out=PATH\n");
       nexkeyruntime_license_destroy(handle);
@@ -803,7 +853,7 @@ int main(int argc, char **argv) {
       exportedRequestPath = outPath;
     }
   } else if (importResponse) {
-    const char *responsePath = argumentValue(argc, argv, "--response");
+    const char *responsePath = getArgValue(argc, argv, "--response");
     if (!responsePath || responsePath[0] == '\0') {
       std::fprintf(stderr, "nexkeyctl: --import needs --response=PATH\n");
       nexkeyruntime_license_destroy(handle);
@@ -832,6 +882,7 @@ int main(int argc, char **argv) {
       nexkeyruntime_license_render_decision(handle);
 
   std::printf("tenant          : %s  (%s)\n", tenant, tenantSource);
+  std::printf("product file    : %s  (%s)\n", resolvedProductFile.c_str(), productFileSource);
   std::printf("call            : %s\n", resultName(result));
   std::printf("status          : %s\n", haveSnapshot ? statusName(snapshot.status) : "(none)");
   std::printf("render decision : %s\n",
@@ -852,8 +903,8 @@ int main(int argc, char **argv) {
   if (!exportedRequestPath.empty()) {
     std::printf("%-16s: %s\n", exportDeactivation ? "proof file" : "request file", exportedRequestPath.c_str());
   }
-  // Printed on every command, not just --status: the whole point of P11 is
-  // comparing this line with the one the plugin prints from inside the host.
+  // Printed on every command, not just --status, so it can be compared
+  // against the path reported by a plugin inside the host.
   const std::string receipts = receiptsDirectory(tenant);
   std::printf("receipts dir    : %s\n", receipts.c_str());
   const int found = receiptCount(receipts);

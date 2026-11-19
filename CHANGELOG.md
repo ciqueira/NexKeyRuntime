@@ -3,13 +3,26 @@
 All notable changes to the NexKeyRuntime public repository will be
 documented in this file.
 
+## [1.4.2] - 2026-11-19
+
+### Added
+
+- **Unified Root CMake Build & Documentation:** Added a root `CMakeLists.txt` and shared `cmake/NexKeyRuntimeSetup.cmake` helper to build `nexkeyctl`, all minimal examples (`build/bin/`), and optional OpenFX plugins (`-DNEXKEY_BUILD_OFX=ON` into `build/plugins/`) from the repository root, alongside a manual quickstart guide.
+- **NexControl Libraries in Release Packages:** Precompiled `nexcontrol` and `nexcontrol_hub` binaries and headers are now included in the macOS and Windows release archives.
+
+### Changed
+
+- **Streamlined `nexkeyctl` & DCTL Sandbox Paths:** `nexkeyctl` now defaults to `mcnexus-sandbox`, auto-detects `sandbox/mcnexus-sandbox.nexkeydat` and platform sandbox runners when run inside the repository, and standardizes packaged DCTL output to `dist/`.
+- **Windows OpenFX Bundle Packaging:** Updated the OpenFX examples and sandbox plugin CMake targets to assemble `.ofx.bundle\Contents\Win64\` on Windows and match the static `/MT` Release configuration.
+- **Local CLI Builds:** Removed prebuilt `nexkeyctl` binaries from release archives in favor of building locally from `tools/nexkeyctl`.
+
 ## [1.4.1] - 2026-11-17
 
 ### Added
 
 - **Windows Active-Node Focus Tracking (NexControl):** Added on-demand automatic active-node focus tracking for DaVinci Resolve on Windows inside the desktop hub, matching macOS multi-instance isolation without requiring Accessibility permissions from plugins.
 - **Expanded MIDI Hardware Profiles & Encoder Modes:** Built-in support for **Behringer X-TOUCH MINI** (supporting `sign_magnitude` and `absolute_step` encoder modes) alongside **Midi Fighter Twister** and **MCMIDI Atom MIDI Hub**, plus reference JSON profiles for **Arturia BeatStep** and **Korg nanoKONTROL Studio** (`schemas/midi-device-profile.schema.json` extended with `sign_magnitude` and `absolute_step`).
-- **Windows Hardware Control Transport Parity:** Completed Windows MIDI hub IPC transport parity and opt-in build packaging support (`MCSDK_BUILD_NEXCONTROL`) alongside macOS.
+- **Windows Hardware Control Transport Parity:** Completed Windows MIDI hub IPC transport parity and opt-in build packaging support alongside macOS.
 
 ### Changed
 

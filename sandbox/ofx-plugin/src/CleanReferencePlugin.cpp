@@ -162,9 +162,11 @@ private:
     OFX::PushButtonParam *btnDismissNotice_;
     OFX::PushButtonParam *btnOpenAction_;
 
+#ifdef MC_NEXCONTROL_ENABLED
     // Hardware MIDI control (NexControl)
     OFX::StringParam *paramInstanceInfo_;
     std::unique_ptr<mc::nexcontrol::InstanceBinding> nexcontrolBinding_;
+#endif
 
     mc::License license_;
     mc::Notices notices_;
@@ -186,9 +188,13 @@ CleanReferencePlugin::CleanReferencePlugin(OfxImageEffectHandle handle)
       btnCheckUpdates_(nullptr),
       paramNoticeBanner_(nullptr),
       btnDismissNotice_(nullptr),
+#ifdef MC_NEXCONTROL_ENABLED
       btnOpenAction_(nullptr),
       paramInstanceInfo_(nullptr),
       nexcontrolBinding_(nullptr)
+#else
+      btnOpenAction_(nullptr)
+#endif
 {
     srcClip_ = fetchClip(kOfxImageEffectSimpleSourceClipName);
     dstClip_ = fetchClip(kOfxImageEffectOutputClipName);
@@ -208,7 +214,9 @@ CleanReferencePlugin::CleanReferencePlugin(OfxImageEffectHandle handle)
     paramNoticeBanner_ = fetchStringParam(kParamNoticeBanner);
     btnDismissNotice_ = fetchPushButtonParam(kParamBtnDismissNotice);
     btnOpenAction_ = fetchPushButtonParam(kParamBtnOpenAction);
+#ifdef MC_NEXCONTROL_ENABLED
     paramInstanceInfo_ = fetchStringParam(kParamInstanceInfo);
+#endif
 
     // 1. Initialize NexKeyRuntime Profile A offline licensing
     license_.start();
@@ -216,6 +224,7 @@ CleanReferencePlugin::CleanReferencePlugin(OfxImageEffectHandle handle)
     // 2. Initialize process-wide NexKeyRuntime Updates and Notices
     notices_.start(platformOpenUrl, "DaVinciResolve", "20.0");
 
+#ifdef MC_NEXCONTROL_ENABLED
     // 3. Initialize real-time hardware MIDI control subsystem
     mc::nexcontrol::init(OFX::Private::gHost, license_.handle());
     nexcontrolBinding_ = std::make_unique<mc::nexcontrol::InstanceBinding>(handle);
@@ -229,13 +238,16 @@ CleanReferencePlugin::CleanReferencePlugin(OfxImageEffectHandle handle)
             paramInstanceInfo_->setValue(beacon);
         } catch (...) {}
     }
+#endif
 
     updateLicenseTelemetry();
     updateNoticesUI();
 }
 
 CleanReferencePlugin::~CleanReferencePlugin() {
+#ifdef MC_NEXCONTROL_ENABLED
     nexcontrolBinding_.reset();
+#endif
     license_.shutdown();
     notices_.shutdown();
 }
@@ -461,6 +473,7 @@ void CleanReferencePluginFactory::describeInContext(OFX::ImageEffectDescriptor &
     btnAction->setLabels("Open Action Link", "Open Link", "Open Action Link");
     btnAction->setParent(*updGroup);
 
+#ifdef MC_NEXCONTROL_ENABLED
     // 5. Hardware MIDI Control parameter group (NexControl)
     OFX::GroupParamDescriptor *hwGroup = desc.defineGroupParam(kGroupNexControl);
     hwGroup->setLabels(kGroupNexControlLabel, "NexControl", kGroupNexControlLabel);
@@ -471,6 +484,7 @@ void CleanReferencePluginFactory::describeInContext(OFX::ImageEffectDescriptor &
     hwInfo->setEnabled(false);
     hwInfo->setEvaluateOnChange(false);
     hwInfo->setParent(*hwGroup);
+#endif
 }
 
 OFX::ImageEffect* CleanReferencePluginFactory::createInstance(OfxImageEffectHandle handle,

@@ -3,6 +3,12 @@ if(POLICY CMP0169)
   cmake_policy(SET CMP0169 OLD)
 endif()
 
+set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+if(WIN32 AND NOT DEFINED CMAKE_CONFIGURATION_TYPES)
+  set(CMAKE_CONFIGURATION_TYPES "Release" CACHE STRING
+    "Supported build configurations (matches published Release /MT SDK library)")
+endif()
+
 project(NexKeySandboxPlugin LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
@@ -11,10 +17,12 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # 1. Locate OpenFX SDK
 if(NOT DEFINED OFX_ROOT)
   set(POSSIBLE_OFX_PATHS
+    "$ENV{OFX_ROOT}"
+    "$ENV{OPENFX_ROOT}"
     "${CMAKE_CURRENT_SOURCE_DIR}/../../third_party/openfx"
   )
   foreach(p IN LISTS POSSIBLE_OFX_PATHS)
-    if(EXISTS "${p}/include/ofxCore.h")
+    if(p AND EXISTS "${p}/include/ofxCore.h")
       set(OFX_ROOT "${p}")
       break()
     endif()
@@ -42,7 +50,7 @@ else()
   FetchContent_Declare(
     openfx
     GIT_REPOSITORY https://github.com/AcademySoftwareFoundation/openfx.git
-    GIT_TAG main
+    GIT_TAG OFX_Release_1.5.1
   )
   FetchContent_GetProperties(openfx)
   if(NOT openfx_POPULATED)
@@ -64,56 +72,10 @@ else()
   )
 endif()
 
-# 2. Locate NexKeyRuntime
-if(NOT TARGET NexKeyRuntime::NexKeyRuntime)
-  find_package(NexKeyRuntime CONFIG QUIET)
-
-  if(NOT NexKeyRuntime_FOUND)
-    find_library(NEXKEYRUNTIME_LIB NAMES libnexkeyruntime.a nexkeyruntime libnexkeyruntime
-      PATHS
-        "${CMAKE_CURRENT_SOURCE_DIR}/../../../build"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../../build"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../../lib"
-    )
-    find_path(NEXKEYRUNTIME_INCLUDE_DIR NAMES nexkeyruntime/nexkeyruntime.h
-      PATHS
-        "${CMAKE_CURRENT_SOURCE_DIR}/../../include"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../../../include"
-    )
-
-    if(NEXKEYRUNTIME_LIB AND NEXKEYRUNTIME_INCLUDE_DIR)
-      add_library(NexKeyRuntime::NexKeyRuntime STATIC IMPORTED GLOBAL)
-      set_target_properties(NexKeyRuntime::NexKeyRuntime PROPERTIES
-        IMPORTED_LOCATION "${NEXKEYRUNTIME_LIB}"
-        INTERFACE_INCLUDE_DIRECTORIES "${NEXKEYRUNTIME_INCLUDE_DIR}"
-      )
-      set(NexKeyRuntime_FOUND TRUE)
-    endif()
-  endif()
-
-  if(NOT NexKeyRuntime_FOUND)
-    message(FATAL_ERROR "NexKeyRuntime library not found.")
-  endif()
-endif()
-
-# 2b. Locate NexControl Client Library
-if(NOT TARGET NexKeyRuntime::nexcontrol AND NOT TARGET nexcontrol)
-  find_library(NEXCONTROL_LIB NAMES libnexcontrol.a nexcontrol libnexcontrol
-    PATHS
-      "${CMAKE_CURRENT_SOURCE_DIR}/../../lib"
-      "${CMAKE_CURRENT_SOURCE_DIR}/../../build/lib"
-      "${CMAKE_CURRENT_SOURCE_DIR}/../../build"
-      "${CMAKE_CURRENT_SOURCE_DIR}/../../../build"
-      "${CMAKE_CURRENT_SOURCE_DIR}/../../../build/src/nexcontrol"
-  )
-  if(NEXCONTROL_LIB)
-    add_library(NexKeyRuntime::nexcontrol STATIC IMPORTED GLOBAL)
-    set_target_properties(NexKeyRuntime::nexcontrol PROPERTIES
-      IMPORTED_LOCATION "${NEXCONTROL_LIB}"
-      INTERFACE_INCLUDE_DIRECTORIES "${CMAKE_CURRENT_SOURCE_DIR}/../../include"
-    )
-  endif()
-endif()
+# 2. Locate NexKeyRuntime (required) and NexControl (optional)
+include("${CMAKE_CURRENT_SOURCE_DIR}/../../cmake/NexKeyRuntimeSetup.cmake")
+nexkey_setup_runtime()
+nexkey_find_nexcontrol()
 
 # 3. Create OFX Plugin Target
 add_library(NexKeySandboxPlugin MODULE
@@ -136,29 +98,33 @@ target_compile_definitions(NexKeySandboxPlugin PRIVATE
 )
 
 target_include_directories(NexKeySandboxPlugin PRIVATE
-  src
+  "${CMAKE_CURRENT_SOURCE_DIR}/src"
   ${OFX_INCLUDE_DIRS}
-  ${CMAKE_CURRENT_SOURCE_DIR}/../../include
+  "${CMAKE_CURRENT_SOURCE_DIR}/../../include"
 )
 
 target_link_libraries(NexKeySandboxPlugin PRIVATE NexKeyRuntime::NexKeyRuntime)
+
 if(TARGET NexKeyRuntime::nexcontrol)
+  target_compile_definitions(NexKeySandboxPlugin PRIVATE MC_NEXCONTROL_ENABLED=1)
   target_link_libraries(NexKeySandboxPlugin PRIVATE NexKeyRuntime::nexcontrol)
+elseif(TARGET nexcontrol)
+  target_compile_definitions(NexKeySandboxPlugin PRIVATE MC_NEXCONTROL_ENABLED=1)
+  target_link_libraries(NexKeySandboxPlugin PRIVATE nexcontrol)
+else()
+  message(STATUS
+    "NexKeySandboxPlugin: building without optional NexControl MIDI support (libnexcontrol not found)")
+endif()
+
+if(CMAKE_LIBRARY_OUTPUT_DIRECTORY)
+  set_target_properties(NexKeySandboxPlugin PROPERTIES
+    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_LIBRARY_OUTPUT_DIRECTORY}"
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_LIBRARY_OUTPUT_DIRECTORY}"
+  )
 endif()
 
 if(APPLE)
-  find_library(SODIUM_LIB NAMES sodium PATHS /opt/homebrew/lib /usr/local/lib)
-  if(SODIUM_LIB)
-    target_link_libraries(NexKeySandboxPlugin PRIVATE "${SODIUM_LIB}")
-  endif()
-
-  target_link_libraries(NexKeySandboxPlugin PRIVATE
-    "-framework CoreFoundation"
-    "-framework IOKit"
-    "-framework Foundation"
-    "-framework Security"
-    "-framework AppKit"
-  )
+  target_link_libraries(NexKeySandboxPlugin PRIVATE "-framework AppKit")
 
   # Standard macOS OFX bundle directory structure:
   # NexKeySandboxPlugin.ofx.bundle/Contents/MacOS/NexKeySandboxPlugin.ofx
@@ -176,10 +142,24 @@ if(APPLE)
       $<TARGET_FILE_DIR:NexKeySandboxPlugin>/NexKeySandboxPlugin.ofx
   )
 elseif(WIN32)
+  target_compile_definitions(NexKeySandboxPlugin PRIVATE NOMINMAX WIN32_LEAN_AND_MEAN)
+  target_link_libraries(NexKeySandboxPlugin PRIVATE shell32)
+
   set_target_properties(NexKeySandboxPlugin PROPERTIES
     PREFIX ""
     SUFFIX ".ofx"
     OUTPUT_NAME "NexKeySandboxPlugin"
+  )
+
+  # Standard Windows OFX bundle directory structure:
+  # NexKeySandboxPlugin.ofx.bundle/Contents/Win64/NexKeySandboxPlugin.ofx
+  add_custom_command(TARGET NexKeySandboxPlugin POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E make_directory
+      "$<TARGET_FILE_DIR:NexKeySandboxPlugin>/NexKeySandboxPlugin.ofx.bundle/Contents/Win64"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+      "$<TARGET_FILE:NexKeySandboxPlugin>"
+      "$<TARGET_FILE_DIR:NexKeySandboxPlugin>/NexKeySandboxPlugin.ofx.bundle/Contents/Win64/NexKeySandboxPlugin.ofx"
+    COMMENT "Packaging NexKeySandboxPlugin.ofx.bundle (Win64)"
   )
 else()
   set_target_properties(NexKeySandboxPlugin PROPERTIES
@@ -188,4 +168,3 @@ else()
     OUTPUT_NAME "NexKeySandboxPlugin"
   )
 endif()
-

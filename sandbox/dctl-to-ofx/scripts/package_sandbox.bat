@@ -2,7 +2,8 @@
 setlocal enabledelayedexpansion
 
 set "SCRIPT_DIR=%~dp0"
-set "BASE_DIR=%SCRIPT_DIR%.."
+for %%I in ("%SCRIPT_DIR%..") do set "BASE_DIR=%%~fI"
+for %%I in ("%SCRIPT_DIR%..\..\..") do set "REPO_ROOT=%%~fI"
 set "RUNNER_PATH=%BASE_DIR%\runners\windows\NexDCTLRunner.ofx"
 
 if not exist "%RUNNER_PATH%" (
@@ -12,18 +13,31 @@ if not exist "%RUNNER_PATH%" (
     exit /b 1
 )
 
-:: Locate nexkeyctl
+:: Locate nexkeyctl (prefer local build in this clone before PATH)
 set "NEXKEYCTL="
-where nexkeyctl >nul 2>nul
-if %errorlevel% equ 0 (
-    set "NEXKEYCTL=nexkeyctl"
+if exist "%REPO_ROOT%\build\bin\Release\nexkeyctl.exe" (
+    set "NEXKEYCTL=%REPO_ROOT%\build\bin\Release\nexkeyctl.exe"
+) else if exist "%REPO_ROOT%\build\bin\nexkeyctl.exe" (
+    set "NEXKEYCTL=%REPO_ROOT%\build\bin\nexkeyctl.exe"
+) else if exist "%REPO_ROOT%\tools\nexkeyctl\build\Release\nexkeyctl.exe" (
+    set "NEXKEYCTL=%REPO_ROOT%\tools\nexkeyctl\build\Release\nexkeyctl.exe"
+) else if exist "%REPO_ROOT%\tools\nexkeyctl\build\nexkeyctl.exe" (
+    set "NEXKEYCTL=%REPO_ROOT%\tools\nexkeyctl\build\nexkeyctl.exe"
+) else if exist "%REPO_ROOT%\bin\nexkeyctl.exe" (
+    set "NEXKEYCTL=%REPO_ROOT%\bin\nexkeyctl.exe"
 ) else if exist "%BASE_DIR%\bin\nexkeyctl.exe" (
     set "NEXKEYCTL=%BASE_DIR%\bin\nexkeyctl.exe"
-) else if exist "%BASE_DIR%\..\..\tools\nexkeyctl\build\Release\nexkeyctl.exe" (
-    set "NEXKEYCTL=%BASE_DIR%\..\..\tools\nexkeyctl\build\Release\nexkeyctl.exe"
 ) else (
-    echo [ERROR] nexkeyctl.exe not found in PATH or bin directory.
-    echo Please ensure nexkeyctl.exe is available.
+    where nexkeyctl >nul 2>nul
+    if !errorlevel! equ 0 (
+        set "NEXKEYCTL=nexkeyctl"
+    )
+)
+
+if "%NEXKEYCTL%"=="" (
+    echo [ERROR] nexkeyctl.exe not found.
+    echo Build it from the repository root first:
+    echo   cmake -S . -B build -A x64 ^&^& cmake --build build --config Release
     pause
     exit /b 1
 )
@@ -45,7 +59,7 @@ if not exist "%INPUT_FILE%" (
 )
 
 set "OUTPUT_DIR=%~2"
-if "%OUTPUT_DIR%"=="" set "OUTPUT_DIR=%BASE_DIR%\dist"
+if "%OUTPUT_DIR%"=="" set "OUTPUT_DIR=%REPO_ROOT%\dist"
 
 if not exist "%OUTPUT_DIR%" mkdir "%OUTPUT_DIR%"
 
@@ -64,4 +78,3 @@ if %errorlevel% equ 0 (
 
 echo.
 pause
-

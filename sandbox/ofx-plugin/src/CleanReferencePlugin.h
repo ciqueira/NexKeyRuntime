@@ -15,7 +15,9 @@
 #include "ofxsProcessing.h"
 #include "MCLicense.h"
 #include "MCNotice.h"
+#ifdef MC_NEXCONTROL_ENABLED
 #include "MCNexControl.h"
+#endif
 #include <memory>
 
 #define kPluginIdentifier "app.mcnexus.nexkey.sandbox-ofx"
@@ -46,11 +48,13 @@
 #define kParamBtnDismissNotice "btnDismissNotice"
 #define kParamBtnOpenAction "btnOpenAction"
 
+#ifdef MC_NEXCONTROL_ENABLED
 // Hardware MIDI control group
 #define kGroupNexControl "grpNexControl"
 #define kGroupNexControlLabel "NexControl MIDI Hardware"
 #define kParamInstanceInfo "instance_info"
 #define kParamInstanceInfoLabel "Hardware Focus Anchor"
+#endif
 
 class CleanReferencePluginFactory
     : public OFX::PluginFactoryHelper<CleanReferencePluginFactory>

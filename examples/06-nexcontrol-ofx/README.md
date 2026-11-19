@@ -2,12 +2,14 @@
 
 This example demonstrates how to integrate the **NexControl** real-time MIDI hardware control subsystem into a native OpenFX (OFX) plugin.
 
+All commands below assume your working directory is the **repository root** (`NexKeyRuntime/`).
+
 ---
 
 ## 1. Architecture: Client & Hub Model
 
 NexControl operates on an asynchronous Client-Hub architecture:
-- **OpenFX Plugin (Client)**: Links the lightweight `libnexcontrol.a` library. It contains zero MIDI drivers, opens no raw device ports, and requires no OS Accessibility permissions.
+- **OpenFX Plugin (Client)**: Links the lightweight `libnexcontrol.a` (`nexcontrol.lib`) library. It contains zero MIDI drivers, opens no raw device ports, and requires no OS Accessibility permissions.
 - **[MCNexus Desktop Application](https://github.com/ciqueira/MCNexus) (Hub)**: Runs in the background to handle physical USB/BLE MIDI device enumeration, profile mapping, and encoder delta processing. It streams parameter mutations to the focused OFX plugin via low-latency binary IPC (Unix Domain Sockets on macOS, Named Pipes on Windows).
 
 ---
@@ -36,7 +38,7 @@ NexControl operates on an asynchronous Client-Hub architecture:
 - **Compiler**: C++17 compliant compiler (AppleClang 14+, GCC 10+, or MSVC 2019+).
 - **CMake**: Version 3.20 or newer.
 - **OpenFX SDK**: Automatically fetched via CMake `FetchContent` (or specified via `-DOFX_ROOT=/path/to/openfx`).
-- **Client Library (`libnexcontrol.a` / `nexcontrol.lib`)**: Place in `../../lib/` or point via `-DNEXCONTROL_LIB=/path/to/libnexcontrol.a`.
+- **Client Library (`libnexcontrol.a` / `nexcontrol.lib`)**: Place in `<repo>/lib/` (or point via `-DNEXCONTROL_LIB=/path/to/libnexcontrol.a`).
 
 ### Runtime (Hardware Testing)
 - **[MCNexus Desktop Application](https://github.com/ciqueira/MCNexus)**: Must be running in the background to act as the hardware MIDI hub.
@@ -46,19 +48,28 @@ NexControl operates on an asynchronous Client-Hub architecture:
 
 ## 4. Building the Plugin
 
-### macOS (Terminal)
+### Recommended: Unified Root Build
+
+**macOS (Terminal):**
+```bash
+cmake -S . -B build -DNEXKEY_BUILD_OFX=ON
+cmake --build build -j8
+```
+*Artifact output:* `build/plugins/NexControlSamplePlugin.ofx.bundle`
+
+**Windows (PowerShell / Developer Command Prompt):**
+```cmd
+cmake -S . -B build -A x64 -DNEXKEY_BUILD_OFX=ON
+cmake --build build --config Release
+```
+*(Use `-A ARM64` instead of `-A x64` if you downloaded `windows-arm64.zip`; `-A` must match your downloaded release archive architecture.)*
+*Artifact output:* `build\plugins\Release\NexControlSamplePlugin.ofx.bundle`
+
+### Optional: Standalone Plugin Build
 ```bash
 cmake -S examples/06-nexcontrol-ofx -B examples/06-nexcontrol-ofx/build
 cmake --build examples/06-nexcontrol-ofx/build -j8
 ```
-*Artifact output:* `examples/06-nexcontrol-ofx/build/NexControlSamplePlugin.ofx.bundle`
-
-### Windows (PowerShell / Developer Command Prompt)
-```cmd
-cmake -S examples/06-nexcontrol-ofx -B examples/06-nexcontrol-ofx/build
-cmake --build examples/06-nexcontrol-ofx/build --config Release
-```
-*Artifact output:* `examples\06-nexcontrol-ofx\build\Release\NexControlSamplePlugin.ofx`
 
 ---
 
@@ -66,12 +77,12 @@ cmake --build examples/06-nexcontrol-ofx/build --config Release
 
 ### macOS:
 ```bash
-sudo cp -R examples/06-nexcontrol-ofx/build/NexControlSamplePlugin.ofx.bundle /Library/OFX/Plugins/
+sudo cp -R build/plugins/NexControlSamplePlugin.ofx.bundle /Library/OFX/Plugins/
 ```
 
-### Windows:
-```cmd
-copy examples\06-nexcontrol-ofx\build\Release\NexControlSamplePlugin.ofx "C:\Program Files\Common Files\OFX\Plugins\"
+### Windows (PowerShell as Admin):
+```powershell
+Copy-Item -Recurse build\plugins\Release\NexControlSamplePlugin.ofx.bundle "C:\Program Files\Common Files\OFX\Plugins\"
 ```
 
 ---

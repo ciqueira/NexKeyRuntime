@@ -55,8 +55,12 @@ int main() {
 
     if (!allowed) {
         std::cout << ">>> Notice: No active license was found on this system.\n";
-        std::cout << "    To activate the Sandbox Demo license, run:\n";
-        std::cout << "    nexkeyctl --activate --key=2D3CD5-45AEE1-B61D54-86DB2C-7307CD-A7664D08\n\n";
+        std::cout << "    To activate the Sandbox Demo license, run from the repository root:\n";
+#if defined(_WIN32)
+        std::cout << "    .\\build\\bin\\Release\\nexkeyctl.exe --activate --key=2D3CD5-45AEE1-B61D54-86DB2C-7307CD-A7664D08 --tenant=mcnexus-sandbox --product-file=sandbox\\mcnexus-sandbox.nexkeydat\n\n";
+#else
+        std::cout << "    ./build/bin/nexkeyctl --activate --key=2D3CD5-45AEE1-B61D54-86DB2C-7307CD-A7664D08 --tenant=mcnexus-sandbox --product-file=sandbox/mcnexus-sandbox.nexkeydat\n\n";
+#endif
     }
 
     license.shutdown();

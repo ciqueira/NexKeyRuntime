@@ -4,6 +4,8 @@ Welcome to the **NexKeyRuntime Developer Sandbox**. This directory contains the 
 
 The Sandbox environment runs on dedicated test infrastructure: activations, deactivations, and test transactions made here do not affect production metrics, customer databases, or Stripe live accounts.
 
+All commands below assume your working directory is the **repository root** (`NexKeyRuntime/`).
+
 ---
 
 ## 1. Sandbox Architecture & Endpoints
@@ -14,7 +16,7 @@ The Sandbox environment runs on dedicated test infrastructure: activations, deac
 | **SDK Gateway** | `https://sdk-sandbox.mcnexus.app` | Issues Ed25519-signed activation certificates and manifests. |
 | **Default Entitlement** | `default` | Base variant slug for SDK plugins and applications. |
 | **Keyring Key ID** | `mcnexus-sandbox-sandbox-2026-10` | Active Ed25519 signing key for this sandbox period. |
-| **ProductData File** | `mcnexus-sandbox.nexkeydat` | Base64-signed trust envelope containing public keyring and gateway URL. |
+| **ProductData File** | `sandbox/mcnexus-sandbox.nexkeydat` | Base64-signed trust envelope containing public keyring and gateway URL. |
 
 ---
 
@@ -37,30 +39,37 @@ All keys are pre-registered on the Sandbox Gateway and ready for immediate testi
 
 ## 3. The Three Sandbox Testbeds
 
-The Sandbox provides three testbeds to validate all capabilities:
+The Sandbox provides three testbeds to validate all capabilities (build first with `cmake -S . -B build && cmake --build build -j8`):
 
 1. **DCTL-to-OFX Conversion:** [**`sandbox/dctl-to-ofx/`**](dctl-to-ofx/)
    - Turn DCTL color scripts and 3D LUTs into native OpenFX plugins for DaVinci Resolve with zero C++ code.
-   - Includes precompiled immutable runners for macOS (Metal) and Windows (OpenCL), automated scripts, and test examples.
+   - Includes precompiled immutable runners for macOS (Metal) and Windows (OpenCL), automated scripts, and test examples outputting to `dist/`.
 2. **OpenFX Host Plugin:** [**`sandbox/ofx-plugin/`**](ofx-plugin/)
-   - Real OpenFX plugin bundle (`NexKeySandboxPlugin.ofx.bundle`) that installs directly into DaVinci Resolve or Premiere Pro.
+   - Real OpenFX plugin bundle (`NexKeySandboxPlugin.ofx.bundle`) built into `build/plugins/` (`cmake -S . -B build -DNEXKEY_BUILD_OFX=ON`) that installs directly into DaVinci Resolve or Premiere Pro.
    - Allows testing atomic render decisions (`< 1 ns`), CPU demo watermarks, license edition changes, update notifications, vendor notices, and real-time MIDI hardware control (`NexControl`) live in the host Inspector.
 3. **CLI Control Tool:** [**`tools/nexkeyctl/`**](../tools/nexkeyctl/)
-   - Command-line tool to activate test keys, inspect local receipts, release seats, check updates, and test offline air-gapped exports.
+   - Command-line tool (`./build/bin/nexkeyctl`) to activate test keys, inspect local receipts, release seats, check updates, package DCTLs, and test offline air-gapped exports.
 
 ```bash
-# Activate a Sandbox Demo license:
-./tools/nexkeyctl/build/nexkeyctl --activate --key=2D3CD5-45AEE1-B61D54-86DB2C-7307CD-A7664D08
+# Activate a Sandbox Demo license (explicit flags shown; also auto-detected inside the repo):
+./build/bin/nexkeyctl --activate \
+  --key=2D3CD5-45AEE1-B61D54-86DB2C-7307CD-A7664D08 \
+  --tenant=mcnexus-sandbox \
+  --product-file=sandbox/mcnexus-sandbox.nexkeydat
 
 # Check local status:
-./tools/nexkeyctl/build/nexkeyctl --status
+./build/bin/nexkeyctl --status \
+  --tenant=mcnexus-sandbox \
+  --product-file=sandbox/mcnexus-sandbox.nexkeydat
 ```
+
+*(On Windows, use `.\build\bin\Release\nexkeyctl.exe`.)*
 
 ---
 
 ## 4. Environment Variables (Optional Helper)
 
-You can configure your terminal session so tools automatically pick up sandbox credentials:
+`nexkeyctl` automatically defaults `--tenant` to `mcnexus-sandbox` and locates `sandbox/mcnexus-sandbox.nexkeydat` when invoked inside the repository. If you invoke tools from outside the repository tree, you can export:
 
 ```bash
 export NEXKEYRUNTIME_TENANT="mcnexus-sandbox"

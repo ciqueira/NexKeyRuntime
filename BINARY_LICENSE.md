@@ -5,16 +5,16 @@ Last updated: October 20, 2026.
 Copyright (c) 2026 Magno Ciqueira. All rights reserved.
 
 This license applies only to official pre-compiled binary releases of
-NexKeyRuntime (static libraries and headers distributed through GitHub
-Releases for this repository). It is **not** the license for this
+NexKeyRuntime (static and dynamic libraries and headers distributed through
+GitHub Releases for this repository). It is **not** the license for this
 repository's own content: the header, schemas, docs, and examples here are
 already Apache-2.0 (see [LICENSE](LICENSE)) and freely usable today. This
-license only governs the compiled artifact a third-party plugin developer
-would statically link into their own product.
+license only governs the compiled artifact a third-party developer would
+link or bundle into their own product.
 
 This is not an end-user license for a finished plugin; it grants a
-**developer redistribution right**: permission to link the binary into a
-plugin you build and then ship to your own end users.
+**developer redistribution right**: permission to link or bundle the binary
+into a plugin or application you build and then ship to your own end users.
 
 ## Review history
 
@@ -50,9 +50,9 @@ governed by `LICENSE` (Apache-2.0).
 ### 2. License Grant
 
 Subject to these terms, you are granted a limited, non-exclusive,
-non-transferable license to statically link the compiled binary into your
-own plugin or application and distribute the resulting compiled product to
-your end users.
+non-transferable license to statically or dynamically link or bundle the
+compiled binary into your own plugin or application and distribute the
+resulting compiled product to your end users.
 
 This grant does not by itself require a commercial agreement: it is
 available under the free Community plan, the same as the rest of the SDK.
@@ -78,7 +78,7 @@ for this SDK's own Apache-2.0 dependencies applies here.
 You may not:
 
 - redistribute the NexKeyRuntime binary itself, standalone or repackaged,
-  outside of a product you have compiled it into;
+  outside of a plugin or application you have compiled or packaged it into;
 - reverse engineer, decompile, or disassemble the binary except to the
   extent applicable law expressly permits;
 - remove or alter copyright or license notices embedded in the binary or

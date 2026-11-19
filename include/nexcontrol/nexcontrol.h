@@ -46,11 +46,14 @@ typedef enum NexControlParamType {
 #  define NEXCONTROL_API __attribute__((visibility("default")))
 #endif
 
+typedef uint32_t (*NexControlFocusQueryCallback)(void);
+
 NEXCONTROL_API NexControlResult nexcontrol_init(OfxHost* host, NexKeyRuntimeLicenseHandle* license_handle);
 NEXCONTROL_API NexControlResult nexcontrol_shutdown(void);
 NEXCONTROL_API NexControlResult nexcontrol_register_instance(OfxImageEffectHandle instance, uint32_t* out_instance_id);
 NEXCONTROL_API NexControlResult nexcontrol_unregister_instance(uint32_t instance_id);
 NEXCONTROL_API NexControlResult nexcontrol_set_focus(uint32_t instance_id, bool is_focused);
+NEXCONTROL_API NexControlResult nexcontrol_set_focus_query_override(NexControlFocusQueryCallback callback);
 NEXCONTROL_API NexControlResult nexcontrol_define_param_priority(const char* script_name, uint16_t priority_slot);
 NEXCONTROL_API NexControlResult nexcontrol_add_param(uint32_t instance_id, const char* script_name, uint8_t param_type, double min_val, double max_val, double display_min, double display_max, double default_val);
 
