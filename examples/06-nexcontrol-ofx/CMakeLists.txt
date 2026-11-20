@@ -120,6 +120,18 @@ if(APPLE)
   set_target_properties(NexControlSamplePlugin PROPERTIES
     BUNDLE TRUE
     BUNDLE_EXTENSION "ofx.bundle"
+    OUTPUT_NAME "NexControlSamplePlugin"
+    SUFFIX ""
+    LINK_FLAGS "-Wl,-exported_symbol,_OfxGetPlugin -Wl,-exported_symbol,_OfxGetNumberOfPlugins"
+  )
+
+  # DaVinci Resolve / OpenFX hosts on macOS scan Contents/MacOS/*.ofx.
+  # CMake ignores SUFFIX on BUNDLE targets, so expose the .ofx symlink.
+  add_custom_command(TARGET NexControlSamplePlugin POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E create_symlink
+      NexControlSamplePlugin
+      "$<TARGET_FILE_DIR:NexControlSamplePlugin>/NexControlSamplePlugin.ofx"
+    COMMENT "Creating Contents/MacOS/NexControlSamplePlugin.ofx symlink"
   )
 elseif(WIN32)
   target_compile_definitions(NexControlSamplePlugin PRIVATE NOMINMAX WIN32_LEAN_AND_MEAN)
