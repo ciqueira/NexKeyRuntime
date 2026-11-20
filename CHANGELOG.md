@@ -3,6 +3,14 @@
 All notable changes to the NexKeyRuntime public repository will be
 documented in this file.
 
+## [1.4.3] - 2026-11-20
+
+### Fixed
+
+- **Windows OpenFX Plugin Load & Shutdown (NexControl):** Fixed a startup hang when loading NexControl-enabled plugins in DaVinci Resolve on Windows and improved dispatch teardown reliability on plugin unload.
+- **OpenFX Undo Grouping & Windows Viewer Refresh:** Grouped hardware-driven parameter changes into proper host undo transactions and improved Windows viewer-refresh responsiveness and shutdown cleanup.
+- **Spurious Parameter Jump Prevention:** Prevented queued or stale deltas, concurrent reset/toggle actions, and MIDI controller reconnects from causing sudden parameter jumps.
+
 ## [1.4.2] - 2026-11-19
 
 ### Added
