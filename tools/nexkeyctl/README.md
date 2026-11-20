@@ -1,9 +1,9 @@
 # nexkeyctl: NexKeyRuntime Command-Line Control Tool
 
 `nexkeyctl` is the native CLI utility for:
-1. **Packaging DCTL shaders into secure OpenFX plugins via Asset Vault** (`package-dctl`, `generate-asset-keys`).
-2. **Activating, inspecting, and managing NexKeyRuntime licenses** (`--activate`, `--deactivate`, `--status`, `--sync`, `--export-request`, `--import`, `--export-deactivation`).
-3. **Checking remote updates and product notices** (`--updates`).
+1. **Activating, inspecting, and managing NexKeyRuntime licenses** (`--activate`, `--deactivate`, `--status`, `--sync`, `--export-request`, `--import`, `--export-deactivation`).
+2. **Checking remote updates and product notices** (`--updates`).
+3. **Packaging DCTL shaders into secure OpenFX plugins via Asset Vault** (`package-dctl`, `generate-asset-keys`).
 
 All commands below assume your working directory is the **repository root** (`NexKeyRuntime/`).
 
@@ -45,49 +45,7 @@ cmake --build tools/nexkeyctl/build -j8
 
 ---
 
-## 2. DCTL-to-OFX Conversion Commands
-
-All packaged bundles default to `dist/` at the repository root (`--output=dist`). In `--sandbox` mode, `nexkeyctl` also auto-detects the platform runner if `--runner` is omitted.
-
-### Sandbox / Evaluation Mode (Free, Instant)
-Convert a DaVinci Resolve DCTL script into an OpenFX bundle inside `dist/`:
-
-**macOS:**
-```bash
-./build/bin/nexkeyctl package-dctl \
-  --input=sandbox/dctl-to-ofx/examples/01-exposure/Exposure.dctl \
-  --name="Exposure Simple" \
-  --runner=sandbox/dctl-to-ofx/runners/macos/NexDCTLRunner.ofx \
-  --output=dist \
-  --sandbox
-```
-
-**Windows (PowerShell / CMD):**
-```cmd
-.\build\bin\Release\nexkeyctl.exe package-dctl --input=sandbox\dctl-to-ofx\examples\01-exposure\Exposure.dctl --name="Exposure Simple" --runner=sandbox\dctl-to-ofx\runners\windows\NexDCTLRunner.ofx --output=dist --sandbox
-```
-
-### Production Mode (Commercial Licensing & Asset Vault Protection)
-Pack encrypted, signed payloads bound to your product credentials using the NexKeyRuntime Asset Vault:
-```bash
-# 1. Generate cryptographic keys:
-./build/bin/nexkeyctl generate-asset-keys --product-id=com.studio.look --output=./keys
-
-# 2. Package commercial plugin bundle into dist/:
-./build/bin/nexkeyctl package-dctl \
-  --input=FilmLook.dctl \
-  --product-id=com.studio.look \
-  --keys=./keys/com.studio.look.keys \
-  --runner=sandbox/dctl-to-ofx/runners/macos/NexDCTLRunner.ofx \
-  --nexkeydat=product.nexkeydat \
-  --tenant=studio-tenant \
-  --variant=download:standard \
-  --output=dist
-```
-
----
-
-## 3. License Management & Update Commands
+## 2. License Management & Update Commands
 
 `nexkeyctl` defaults `--tenant` to `mcnexus-sandbox` and automatically locates `sandbox/mcnexus-sandbox.nexkeydat` when run inside this repository. For clarity, the full explicit flags are shown below:
 
@@ -128,6 +86,48 @@ Pack encrypted, signed payloads bound to your product credentials using the NexK
 ```
 
 **Windows:** Replace `./build/bin/nexkeyctl` with `.\build\bin\Release\nexkeyctl.exe`.
+
+---
+
+## 3. DCTL-to-OFX Conversion Commands
+
+All packaged bundles default to `dist/` at the repository root (`--output=dist`). In `--sandbox` mode, `nexkeyctl` also auto-detects the platform runner if `--runner` is omitted.
+
+### Sandbox / Evaluation Mode (Free, Instant)
+Convert a DaVinci Resolve DCTL script into an OpenFX bundle inside `dist/`:
+
+**macOS:**
+```bash
+./build/bin/nexkeyctl package-dctl \
+  --input=sandbox/dctl-to-ofx/examples/01-exposure/Exposure.dctl \
+  --name="Exposure Simple" \
+  --runner=sandbox/dctl-to-ofx/runners/macos/NexDCTLRunner.ofx \
+  --output=dist \
+  --sandbox
+```
+
+**Windows (PowerShell / CMD):**
+```cmd
+.\build\bin\Release\nexkeyctl.exe package-dctl --input=sandbox\dctl-to-ofx\examples\01-exposure\Exposure.dctl --name="Exposure Simple" --runner=sandbox\dctl-to-ofx\runners\windows\NexDCTLRunner.ofx --output=dist --sandbox
+```
+
+### Production Mode (Commercial Licensing & Asset Vault Protection)
+Pack encrypted, signed payloads bound to your product credentials using the NexKeyRuntime Asset Vault:
+```bash
+# 1. Generate cryptographic keys:
+./build/bin/nexkeyctl generate-asset-keys --product-id=com.studio.look --output=./keys
+
+# 2. Package commercial plugin bundle into dist/:
+./build/bin/nexkeyctl package-dctl \
+  --input=FilmLook.dctl \
+  --product-id=com.studio.look \
+  --keys=./keys/com.studio.look.keys \
+  --runner=sandbox/dctl-to-ofx/runners/macos/NexDCTLRunner.ofx \
+  --nexkeydat=product.nexkeydat \
+  --tenant=studio-tenant \
+  --variant=download:standard \
+  --output=dist
+```
 
 ---
 
