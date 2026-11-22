@@ -97,9 +97,9 @@
         },
         "step_sensitivity": {
           "type": "number",
-          "minimum": 0.0001,
+          "minimum": 0.00005,
           "maximum": 1.0,
-          "default": 0.01,
+          "default": 0.0005,
           "description": "Multiplier per tick applied to the OFX parameter normalized scale."
         },
         "cc_start": {
