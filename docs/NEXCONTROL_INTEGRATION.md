@@ -35,23 +35,29 @@ flowchart LR
    Only the node currently focused in DaVinci Resolve's Inspector receives knob turns; inactive nodes remain silent, with **zero OS Accessibility permission prompts required** and zero blocking on plugin render threads.
 4. **Multi-Plugin Node Isolation**:
    Instance IDs are automatically managed with process-level isolation. Multiple distinct OFX plugins (such as creative grading tools and custom DCTL runners) running on the same timeline receive unique instance identifiers, preventing cross-plugin parameter conflicts.
-5. **In-SDK Timeline Viewer Refresh**:
-   When the timeline is paused, Resolve does not refresh GPU frames for API-driven slider changes alone. NexControl performs an in-process refresh of the timeline viewer without external scripts or network sockets.
-6. **Thread Safety & Smooth Stepping**:
-   Parameter adjustments are dispatched safely on the host's main UI thread. Continuous sliders (`Double`) offer smooth incremental adjustments, while discrete controls (`Choice` and `Integer`) feature sequential option stepping with automatic boundary clamping.
+5. **Timeline Viewer Refresh**:
+   When the timeline is paused, Resolve does not refresh GPU frames for API-driven slider changes alone. NexControl automatically refreshes the host timeline viewer during playback pause.
+6. **Thread Safety & Adaptive Scaling**:
+   Parameter adjustments are dispatched safely on the host's main UI thread. Continuous sliders (`Double`) use adaptive scaling proportional to parameter range and display precision, while discrete controls (`Choice` and `Integer`) feature sequential stepping with automatic boundary clamping.
 
 ---
 
 ## 2. Parameter Types
 
-When registering a parameter with `m_nexcontrolBinding->addParam()`, provide the control type (`param_type`):
+When registering a parameter with `addParam()`, provide the control type (`param_type` / `NexControlParamType`):
 
-| Type (`uint8_t`) | OpenFX Type | Rotation Action | Click Action (Push Switch) |
-| :---: | :--- | :--- | :--- |
-| **`1`** | `kOfxParamTypeDouble` | Continuous smooth increment/decrement (`±0.01` per tick). | **Immediate reset** to `default_value`. |
-| **`2`** | `kOfxParamTypeInteger` | Discrete integer step (`+1` or `-1` per tick) with clamping. | **Immediate reset** to `default_value`. |
-| **`3`** | `kOfxParamTypeBoolean` | Step toggle based on rotation direction. | **Toggle On/Off** (`0 ↔ 1`). |
-| **`4`** | `kOfxParamTypeChoice` | Sequential navigation across dropdown options with clamping. | **Immediate reset** to default choice index. |
+| Type (`uint8_t`) | OpenFX Type | Constant | Rotation Action | Click Action (Push Switch) |
+| :---: | :--- | :--- | :--- | :--- |
+| **`1`** | `kOfxParamTypeDouble` | `NEXCONTROL_PARAM_DOUBLE` | Steps by 1 unit of the last displayed digit on slow turns and accelerates smoothly across the display range on fast turns. | **Reset** to `default_value`. |
+| **`2`** | `kOfxParamTypeInteger` | `NEXCONTROL_PARAM_INT` | Discrete integer step (`+1` or `-1` per tick) with clamping. | **Reset** to `default_value`. |
+| **`3`** | `kOfxParamTypeBoolean` | `NEXCONTROL_PARAM_BOOL` | Step toggle based on rotation direction. | **Toggle On/Off** (`0 ↔ 1`). |
+| **`4`** | `kOfxParamTypeChoice` | `NEXCONTROL_PARAM_CHOICE` | Sequential navigation across dropdown options with clamping. | **Reset** to default choice index. |
+
+Pass realistic `display_min` and `display_max` values to `addParam()` (especially for unbounded value boxes). NexControl uses the display range to scale fast-turn acceleration and match the decimal precision shown in the host Inspector. If a parameter requires more than 3 decimal places, declare it on the OpenFX descriptor with `setDigits()` (`kOfxParamPropDigits`).
+
+> [!NOTE]
+> **Multidimensional Controls (Color Wheels & Vectors):**
+> Physical rotary encoders control one scalar axis at a time. Decompose multidimensional parameters (such as `kOfxParamTypeRGB` or 2D/3D vectors) into individual scalar parameters or slots (for example, Red, Green, and Blue, or Hue, Saturation, and Luma).
 
 ---
 
@@ -71,7 +77,7 @@ public:
     virtual ~MyPlugin();
 
 private:
-    // Status anchor parameter (Required for in-process node identification)
+    // Focus anchor parameter (required for automatic active-node tracking)
     OFX::StringParam *m_InstanceInfo = nullptr;
 
     // Instance binding lifecycle holder
@@ -81,14 +87,14 @@ private:
 
 ---
 
-### Step 2: Define the Anchor in `describeInContext`
+### Step 2: Define the Focus Anchor in `describeInContext`
 
-In your Factory descriptor (e.g. `MyPluginFactory::describeInContext`):
+In your Factory descriptor (e.g. `MyPluginFactory::describeInContext`), assuming `page` is your target `OFX::PageParamDescriptor *`:
 
 ```cpp
 void MyPluginFactory::describeInContext(OFX::ImageEffectDescriptor &p_Desc,
                                         OFX::ContextEnum p_Context) {
-    // ... Define your regular parameters (gain, gamma, saturation, etc.) ...
+    // ... Define your regular parameters (exposure, contrast, saturation, etc.) ...
 
     // Define NexControl Group (closed by default in Inspector)
     OFX::GroupParamDescriptor *grpNexControl = p_Desc.defineGroupParam("grpNexControl");
@@ -96,13 +102,13 @@ void MyPluginFactory::describeInContext(OFX::ImageEffectDescriptor &p_Desc,
     grpNexControl->setOpen(false);
     page->addChild(*grpNexControl);
 
-    // Anchor string parameter inside the NexControl group
+    // Focus anchor string parameter inside the NexControl group
     OFX::StringParamDescriptor *instParam = p_Desc.defineStringParam("instance_info");
     instParam->setLabels("Status", "Status", "Status");
     instParam->setStringType(OFX::eStringTypeSingleLine);
     instParam->setDefault("Node Instance (Inactive)");
     instParam->setEnabled(false);       // Read-only (grayed out in Inspector)
-    instParam->setIsPersistant(false);   // CRITICAL: Never persist in project files (.drp)
+    instParam->setIsPersistant(false);  // CRITICAL: Never persist in project files (.drp)
     instParam->setParent(*grpNexControl);
     page->addChild(*instParam);
 }
@@ -113,7 +119,7 @@ void MyPluginFactory::describeInContext(OFX::ImageEffectDescriptor &p_Desc,
 
 ---
 
-### Step 3: Initialize in the Instance Constructor
+### Step 3: Initialize and Register Parameters in the Instance Constructor
 
 In your plugin constructor (e.g. `MyPlugin.cpp`):
 
@@ -133,28 +139,48 @@ MyPlugin::MyPlugin(OfxImageEffectHandle p_Handle)
     // 2. Allocate instance binding
     m_nexcontrolBinding = std::make_unique<mc::nexcontrol::InstanceBinding>(p_Handle);
 
-    // 3. Register parameters (Slot 0, Slot 1, ...)
-    // Signature: addParam(scriptName, paramType, min, max, dispMin, dispMax, defaultVal)
-    m_nexcontrolBinding->addParam("exposure", 1, -5.0, 5.0, -5.0, 5.0, 0.0);
-    m_nexcontrolBinding->addParam("contrast", 1,  0.0, 2.0,  0.0, 2.0, 1.0);
-    m_nexcontrolBinding->addParam("color_mode", 4, 0.0, 5.0, 0.0, 5.0, 0.0); // Choice
-    m_nexcontrolBinding->addParam("bypass", 3, 0.0, 1.0, 0.0, 1.0, 0.0);     // Bool
+    // 3. Register parameters inside a batch scope (up to NEXCONTROL_MAX_PARAMS = 256)
+    {
+        auto batch = m_nexcontrolBinding->beginBatch();
 
-    // 4. Update the beacon parameter with the unique instance ID
+        auto mainGroup = m_nexcontrolBinding->beginGroup(
+            "Tone", mc::nexcontrol::GroupLayout::AutoPack);
+        mainGroup.addParam("exposure",   NEXCONTROL_PARAM_DOUBLE, -5.0, 5.0, -5.0, 5.0, 0.0);
+        mainGroup.addParam("contrast",   NEXCONTROL_PARAM_DOUBLE,  0.0, 2.0,  0.0, 2.0, 1.0);
+        mainGroup.addParam("color_mode", NEXCONTROL_PARAM_CHOICE,  0.0, 5.0,  0.0, 5.0, 0.0);
+        mainGroup.addParam("bypass",     NEXCONTROL_PARAM_BOOL,    0.0, 1.0,  0.0, 1.0, 0.0);
+    }
+
+    // 4. Update the focus anchor parameter with the unique instance ID
     m_InstanceInfo = fetchStringParam("instance_info");
     if (m_InstanceInfo && m_nexcontrolBinding) {
-        std::string beaconText = "Node Instance (ID: " + 
+        std::string anchorText = "Node Instance (ID: " +
                                  std::to_string(m_nexcontrolBinding->instance_id()) + ")";
-        try { 
-            m_InstanceInfo->setValue(beaconText); 
+        try {
+            m_InstanceInfo->setValue(anchorText);
         } catch (...) {}
     }
 }
 ```
 
+For minimal plugins with only ungrouped controls, you can also register parameters directly on `m_nexcontrolBinding->addParam(...)` inside or outside `beginBatch()`.
+
 ---
 
-### Step 4: Cleanup in the Destructor
+### Step 4: Notify Manual UI Edits and Clean Up
+
+Call `notifyUserEdit()` from `changedParam()` when the user moves a control directly in the Inspector so the hub stays synchronized with host state (skip while applying programmatic preset updates):
+
+```cpp
+void MyPlugin::changedParam(const OFX::InstanceChangedArgs &p_Args,
+                            const std::string &p_ParamName) {
+    // ... handle regular parameter changes ...
+
+    if (p_Args.reason == OFX::eChangeUserEdit && !m_isUpdatingProgrammatically && m_nexcontrolBinding) {
+        m_nexcontrolBinding->notifyUserEdit(p_ParamName.c_str());
+    }
+}
+```
 
 In your plugin destructor:
 
@@ -166,7 +192,37 @@ MyPlugin::~MyPlugin() {
 
 ---
 
-## 4. Hardware Profiles & Customization
+## 4. Parameter Grouping & Virtual Banks
+
+Plugins can register up to `NEXCONTROL_MAX_PARAMS` (256) parameters and let NexControl organize them automatically across the connected controller's physical dials and banks:
+
+- **`beginBatch()` (`BatchScope`):** Defers publication while you register all groups and parameters, publishing a single complete layout when the scope ends.
+- **`GroupLayout::AutoPack`:** Packs small consecutive groups onto the same virtual bank page when space allows, moving an entire group to the next page rather than splitting it mid-group.
+- **`GroupLayout::DedicatedBank`:** Starts the group on its own dedicated virtual bank page without sharing space with neighboring groups.
+- **`pinnedInSubpages`:** When registering a parameter inside a `GroupScope`, passing `true` pins that control (such as a `Master` or `Mix` dial) to the first slot of every sub-page when the group spans multiple pages.
+- **Semantic Flags (`extraFlags`):** Combine optional hints from `nexcontrol/nexcontrol.h`, including `NEXCONTROL_PARAM_FLAG_BIPOLAR` (symmetric ranges around zero) and `NEXCONTROL_PARAM_FLAG_LOGARITHMIC` (logarithmic scaling).
+
+```cpp
+{
+    auto batch = m_nexcontrolBinding->beginBatch();
+
+    auto hueGroup = m_nexcontrolBinding->beginGroup(
+        "Hue Controls", mc::nexcontrol::GroupLayout::DedicatedBank);
+
+    // Pinned to the first encoder on every sub-page of this group
+    hueGroup.addParam("hueMaster", NEXCONTROL_PARAM_DOUBLE, 0.0, 2.0, 0.0, 2.0, 1.0, true);
+
+    for (int i = 0; i < 8; ++i) {
+        std::string name = "hueBand" + std::to_string(i);
+        hueGroup.addParam(name.c_str(), NEXCONTROL_PARAM_DOUBLE, -1.0, 1.0, -1.0, 1.0, 0.0,
+                          false, NEXCONTROL_PARAM_FLAG_BIPOLAR);
+    }
+}
+```
+
+---
+
+## 5. Hardware Profiles & Customization
 
 NexControl supports dynamic profile definition using the formal JSON schema:
 [`schemas/midi-device-profile.schema.json`](../schemas/midi-device-profile.schema.json).
@@ -175,7 +231,7 @@ Users or manufacturers can create custom profiles in:
 - macOS: `~/Library/Application Support/MCNexus/profiles/<model>.json`
 - Windows: `%APPDATA%\MCNexus\profiles\<model>.json`
 
-Profiles configure encoder modes (`twos_complement`, `binary_offset_64`, `sign_magnitude`, `absolute_step`), CC ranges, MIDI channels, banks, and push switch actions without requiring plugin recompilation.
+Profiles configure encoder modes (`twos_complement`, `binary_offset_64`, `sign_magnitude`, `absolute_step`), fine-tuning sensitivity (`step_sensitivity`), page width (`knobs_per_page`), hardware virtual bank navigation (`virtual_bank_controls`), CC ranges, MIDI channels, banks, and push-switch actions without requiring plugin recompilation.
 
 ### Supported Controllers Summary
 

@@ -3,6 +3,19 @@
 All notable changes to the NexKeyRuntime public repository will be
 documented in this file.
 
+## [1.4.4] - 2026-11-22
+
+### Added
+
+- **NexControl Parameter Grouping & Batching (`nexcontrol.h` / `MCNexControl.h`):** Added `nexcontrol_add_param_ex`, `nexcontrol_begin_batch`, `nexcontrol_end_batch`, `nexcontrol_notify_user_edit`, and `nexcontrol_set_focus_query_override`, along with parameter display flags (`NEXCONTROL_PARAM_FLAG_*`) and C++ helpers (`BatchScope`, `GroupScope`).
+- **Virtual Bank Navigation & Diagnostics (`nexcontrol_hub`):** Added virtual bank pagination across grouped plugin parameters (`nexcontrol_hub_get_active_bank_map`, `nexcontrol_hub_step_virtual_bank`) and extended `NexControlTelemetrySnapshot` with bank and MIDI diagnostic fields.
+- **MIDI Profile Banking Schema Extensions:** Extended `schemas/midi-device-profile.schema.json` with optional `knobs_per_page` and `virtual_bank_controls` settings for hardware bank navigation.
+
+### Changed
+
+- **Refined Encoder Scaling & Precision:** Improved encoder scaling across OpenFX parameters and the Universal DCTL Runner so slow turns step by 1 unit of the last displayed digit and fast turns accelerate smoothly across the display range; updated `step_sensitivity` defaults in `schemas/midi-device-profile.schema.json` to `0.0005` (`minimum: 0.00005`).
+- **Windows Focus Responsiveness & Profile Reload Stability:** Improved active-node focus responsiveness on Windows during continuous MIDI control and improved live hardware profile reload stability in the desktop hub.
+
 ## [1.4.3] - 2026-11-20
 
 ### Fixed
