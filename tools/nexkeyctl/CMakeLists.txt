@@ -14,6 +14,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 include("${CMAKE_CURRENT_SOURCE_DIR}/../../cmake/NexKeyRuntimeSetup.cmake")
 nexkey_setup_runtime()
+nexkey_find_packager()
 
 add_executable(nexkeyctl main.cpp)
 target_include_directories(nexkeyctl PRIVATE
@@ -21,3 +22,6 @@ target_include_directories(nexkeyctl PRIVATE
   "${CMAKE_CURRENT_SOURCE_DIR}/../../include"
 )
 target_link_libraries(nexkeyctl PRIVATE NexKeyRuntime::NexKeyRuntime)
+if(TARGET NexKeyRuntime::Packager)
+  target_link_libraries(nexkeyctl PRIVATE NexKeyRuntime::Packager)
+endif()

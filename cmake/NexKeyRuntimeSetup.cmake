@@ -136,3 +136,39 @@ function(nexkey_find_nexcontrol)
     message(STATUS "NexKeyRuntime: using NexControl library ${NEXCONTROL_LIB}")
   endif()
 endfunction()
+
+function(nexkey_find_packager)
+  if(TARGET NexKeyRuntime::Packager OR TARGET nexkeypackager)
+    return()
+  endif()
+
+  set(_saved_suffixes ${CMAKE_FIND_LIBRARY_SUFFIXES})
+  set(CMAKE_FIND_LIBRARY_SUFFIXES ${CMAKE_STATIC_LIBRARY_SUFFIX})
+
+  find_library(NEXKEYPACKAGER_LIB
+    NAMES nexkeypackager libnexkeypackager
+    PATHS
+      "${NEXKEY_REPO_ROOT}/lib"
+      "${NEXKEY_REPO_ROOT}/build/lib"
+      "${NEXKEY_REPO_ROOT}/build"
+      "${NEXKEY_REPO_ROOT}/../build"
+    NO_DEFAULT_PATH
+  )
+
+  set(CMAKE_FIND_LIBRARY_SUFFIXES ${_saved_suffixes})
+
+  if(NEXKEYPACKAGER_LIB)
+    add_library(NexKeyRuntime::Packager STATIC IMPORTED GLOBAL)
+    set_target_properties(NexKeyRuntime::Packager PROPERTIES
+      IMPORTED_LOCATION "${NEXKEYPACKAGER_LIB}"
+      INTERFACE_INCLUDE_DIRECTORIES "${NEXKEY_REPO_ROOT}/include"
+      INTERFACE_COMPILE_FEATURES "cxx_std_17"
+    )
+    if(TARGET NexKeyRuntime::NexKeyRuntime)
+      set_property(TARGET NexKeyRuntime::Packager APPEND PROPERTY
+        INTERFACE_LINK_LIBRARIES NexKeyRuntime::NexKeyRuntime
+      )
+    endif()
+    message(STATUS "NexKeyRuntime: using Packager library ${NEXKEYPACKAGER_LIB}")
+  endif()
+endfunction()
