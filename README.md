@@ -115,8 +115,8 @@ cd NexKeyRuntime
 
 Download the precompiled release archive for your platform from [GitHub Releases](https://github.com/ciqueira/NexKeyRuntime/releases), extract it, and copy its `lib/` directory into the repository root:
 
-- **macOS**: `lib/libnexkeyruntime.a` (plus optional `lib/libnexcontrol.a` for NexControl OFX MIDI examples)
-- **Windows**: `lib/nexkeyruntime.lib` (plus optional `lib/nexcontrol.lib` for NexControl OFX MIDI examples)
+- **macOS**: `lib/libnexkeyruntime.a` and `lib/libnexkeypackager.a` (for `nexkeyctl` DCTL packaging), plus optional `lib/libnexcontrol.a` for NexControl OFX MIDI examples
+- **Windows**: `lib/nexkeyruntime.lib` and `lib/nexkeypackager.lib` (for `nexkeyctl` DCTL packaging), plus optional `lib/nexcontrol.lib` for NexControl OFX MIDI examples
 
 *(Note: If you use `-DCMAKE_PREFIX_PATH=<extracted_release_dir>` on Windows instead of copying `lib/` into the repository root, keep the extracted `bin/` directory (`nexkeyruntime.dll`, `nexcontrol_hub.dll`) alongside `lib/` so CMake's exported package targets validate cleanly.)*
 
@@ -124,8 +124,9 @@ Your workspace layout will follow this standard structure:
 
 ```text
 NexKeyRuntime/
-├── lib/                       # Downloaded release static library (gitignored)
+├── lib/                       # Downloaded release static libraries (gitignored)
 │   ├── libnexkeyruntime.a     # macOS (or nexkeyruntime.lib on Windows)
+│   ├── libnexkeypackager.a    # macOS (or nexkeypackager.lib on Windows; required by nexkeyctl)
 │   └── libnexcontrol.a        # Optional: only required for NexControl OFX MIDI examples
 ├── build/
 │   ├── bin/                   # Compiled CLI and examples (build\bin\Release\ on Windows)

@@ -3,6 +3,16 @@
 All notable changes to the NexKeyRuntime public repository will be
 documented in this file.
 
+## [1.4.5] - 2026-11-23
+
+### Changed
+
+- **Dedicated DCTL Packager Library (`nexkeypackager`):** Extracted DCTL preprocessing and asset packaging into a separate static library (`libnexkeypackager.a` on macOS, `nexkeypackager.lib` on Windows; CMake target `NexKeyRuntime::Packager`). Plugins and host apps linking `nexkeyruntime` stay minimal, while `nexkeyctl` links both `nexkeyruntime` and `nexkeypackager`.
+
+### Security
+
+- **Runtime, Storage & Asset Packaging Hardening:** Strengthened local receipt and credential handling, hardened content-key access and in-memory cleanup, and tightened asset packaging and Universal DCTL Runner environment isolation. Integrators shipping `NexKeyRuntime` or `DCTL-to-OFX` builds are encouraged to update to `1.4.5`.
+
 ## [1.4.4] - 2026-11-22
 
 ### Added

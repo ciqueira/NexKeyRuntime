@@ -16,7 +16,7 @@ Compiling `nexkeyctl` on your machine ensures the executable is locally produced
 ### Prerequisites
 - **Compiler**: C++17 compliant compiler (AppleClang 14+, GCC 10+, or MSVC 2019+).
 - **CMake**: Version 3.20 or newer.
-- **Static Library**: Download the **NexKeyRuntime SDK** release package for your platform from [GitHub Releases](https://github.com/ciqueira/NexKeyRuntime/releases) and place `lib/libnexkeyruntime.a` (macOS) or `lib/nexkeyruntime.lib` (Windows) in `<repo>/lib/`.
+- **Static Libraries**: Download the **NexKeyRuntime SDK** release package for your platform from [GitHub Releases](https://github.com/ciqueira/NexKeyRuntime/releases) and place `lib/libnexkeyruntime.a` and `lib/libnexkeypackager.a` (macOS) or `lib/nexkeyruntime.lib` and `lib/nexkeypackager.lib` (Windows) in `<repo>/lib/`.
 
 ### Recommended: Unified Root Build
 
