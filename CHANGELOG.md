@@ -20,6 +20,7 @@ documented in this file.
 - **macOS OpenFX Unload & Teardown Stability (NexControl):** Fixed potential crashes when a host unloads a NexControl-enabled plugin bundle while hardware focus or parameter callbacks are still pending, and improved shutdown safety across threads.
 - **Parameter Lifecycle & Instance Isolation (NexControl):** Hardened parameter slot lifetimes and instance recycling during rapid plugin creation, destruction, and teardown to prevent race conditions.
 - **macOS Viewer Refresh Shutdown Cleanup:** Improved cleanup of background viewer-refresh operations on macOS for faster plugin unload without leaving orphaned host helper processes.
+- **Background License Sync Scheduling & Backoff:** Reduced unnecessary background sync traffic on startup when a valid local receipt is still within its sync window, while preserving immediate sync on explicit `nexkeyruntime_license_request_sync()` calls. Hardened sync deadline validation and added backoff when a sync response does not renew the local receipt.
 
 ## [1.4.5] - 2026-11-23
 
